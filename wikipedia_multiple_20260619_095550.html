@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Wikipedia Scraper - Multiple Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.4);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #34d399, #818cf8, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .image-card img {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .image-card:hover img {
+            transform: scale(1.03);
+        }
+        .content-text {
+            line-height: 1.9;
+            font-weight: 300;
+            color: #e2e8f0;
+        }
+        .content-text p {
+            margin-bottom: 1.2rem;
+        }
+        .infobox-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+            gap: 1rem;
+        }
+        .infobox-item:last-child {
+            border-bottom: none;
+        }
+        .infobox-key {
+            color: #94a3b8;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .infobox-value {
+            color: #f1f5f9;
+            text-align: right;
+            font-weight: 400;
+            word-break: break-word;
+        }
+        .bento-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 768px) {
+            .bento-grid {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #34d399;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6ee7b7;
+        }
+        .hover-glow:hover {
+            box-shadow: 0 0 30px rgba(52, 211, 153, 0.12);
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .status-badge {
+            padding: 2px 12px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .status-success {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+        }
+        .status-failed {
+            background: rgba(251, 113, 133, 0.2);
+            color: #fb7185;
+        }
+        .result-card {
+            transition: all 0.3s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4);
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: #34d399;
+            color: #0f172a;
+        }
+        .btn-primary:hover {
+            background: #6ee7b7;
+            transform: scale(1.02);
+        }
+        .btn-secondary {
+            background: rgba(71, 85, 105, 0.5);
+            color: #f1f5f9;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        .btn-secondary:hover {
+            background: rgba(71, 85, 105, 0.8);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .glass { background: #1e293b !important; backdrop-filter: none !important; }
+            body { background: #0f172a !important; }
+            .result-card { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-700/50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">📖</span>
+                    <span class="font-bold text-xl gradient-text">WikiScraper</span>
+                    <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">Multi</span>
+                </div>
+                <div class="flex items-center space-x-3 text-sm text-slate-400">
+                    <span class="hidden sm:inline text-xs">🕐 19 June 2026 09:55</span>
+                    <span class="text-xs">10/10 sukses</span>
+                    <button onclick="window.print()" class="btn btn-primary no-print text-xs">
+                        🖨️ PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="pt-24 pb-8 px-4 fade-in">
+        <div class="max-w-7xl mx-auto">
+            <div class="glass rounded-2xl p-6 md:p-10 hover-glow transition-all duration-300 border border-slate-700/50">
+                <h1 class="text-2xl md:text-4xl lg:text-5xl font-bold leading-tight">
+                    <span class="gradient-text">Multiple Results</span>
+                </h1>
+                <div class="flex flex-wrap items-center gap-3 mt-3 text-slate-400 text-xs md:text-sm">
+                    <span>📚 10 keyword</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                    <span class="text-emerald-400">✅ 10 sukses</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                    <span class="text-rose-400">❌ 0 gagal</span>
+                </div>
+                <div class="mt-4 flex gap-3 flex-wrap no-print">
+                    <button onclick="window.print()" class="btn btn-primary">
+                        🖨️ Print / Save as PDF
+                    </button>
+                    <button onclick="window.location.reload()" class="btn btn-secondary">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="px-4 pb-16 fade-in">
+        <div class="max-w-7xl mx-auto space-y-6">
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#1</span>
+                    <span class="text-xl font-bold gradient-text">Daerah Khusus Ibukota Jakarta</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 18 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Jakarta, secara resmi bernama Daerah Khusus Ibukota Jakarta atau DKI Jakarta, sebelumnya dikenal sebagai Batavia, adalah ibu kota Indonesia dan sekaligus daerah otonom setingkat provinsi. Jakarta memiliki lima kota administrasi dan satu kabupaten administrasi. DKI Jakarta dapat digolongkan sebagai kota metropolitan, dan mendapat julukan The Big Durian karena dianggap sebanding dengan Kota New York (Big Apple) di Amerika Serikat.</p><p>Jakarta memiliki luas sekitar 664,01 km² (lautan: 6.977,5 km²), dengan penduduk berjumlah 11.038.216 jiwa pada akhir tahun 2024. Sebagai pusat bisnis, politik, dan kebudayaan, Jakarta merupakan tempat berdirinya kantor-kantor pusat BUMN, perusahaan swasta, dan perusahaan asing. Kota ini juga menjadi tempat kedudukan lembaga-lembaga pemerintahan dan kantor sekretariat ASEAN. Jakarta dilayani oleh dua bandar udara, yaitu Bandara Internasional Soekarno–Hatta di Kota Tangerang, Banten dan Bandara Halim Perdanakusuma, serta dua pelabuhan laut, yaitu Tanjung Priok dan Sunda Kelapa.</p><p>Daerah ini sudah beberapa kali berganti nama dalam beberapa periode yang tercantum sebagai berikut.</p><p>Nama "Jakarta" sudah digunakan sejak masa pendudukan Jepang tahun 1942, untuk menyebut wilayah bekas Gemeente Batavia yang diresmikan pemerintah Hindia Belanda pada tahun 1905. Nama "Jakarta" merupakan kependekan dari kata Jayakarta (aksara Dewanagari: जयकृत), yang berasal dari kata bahasa Sanskerta जय jaya (kemenangan), dan कृत krta (kemakmuran), sehingga Jayakarta berarti "kota kejayaan dan kemakmuran". Nama itu diberikan oleh orang-orang dari Demak dan Cirebon di bawah pimpinan Fatahillah (Faletehan) setelah menyerang dan menduduki pelabuhan Sunda Kelapa pada tanggal 22 Juni 1527.</p><p>Nama ini diterjemahkan sebagai "kota kemenangan" atau "kota kejayaan". Namun, sejatinya berarti "kemenangan yang diraih oleh sebuah perbuatan atau usaha" karena berasal dari dua kata Sanskerta yaitu Jaya (जय) yang berarti "kemenangan" dan Karta (कृत) yang berarti "dicapai".</p><p>Sejarawan Portugis, João de Barros, dalam Décadas da Ásia (1553) menyebutkan keberadaan "Xacatara dengan nama lain Caravam (Karawang)". Sebuah dokumen (piagam) dari Banten (k. 1600) yang dibaca ahli epigrafi Van der Tuuk juga telah menyebut istilah wong Jaketra, demikian pula nama Jaketra juga disebutkan dalam surat-surat Sultan Banten dan Sajarah Banten (pupuh 45 dan 47) sebagaimana diteliti Hoessein Djajadiningrat. Laporan Cornelis de Houtman tahun 1596 menyebut Pangeran Wijayakrama sebagai koning van Jacatra (raja Jakarta).</p><p>Jakarta pertama kali dikenal sebagai salah satu pelabuhan Kerajaan Sunda yang bernama Sunda Kalapa (Aksara Sunda: ᮞᮥᮔ᮪ᮓ ᮊᮜᮕ), berlokasi di muara Sungai Ciliwung. Ibu kota Kerajaan Sunda yang dikenal sebagai Dayeuh Pakuan Padjadjaran atau Pajajaran (sekarang Bogor) dapat ditempuh dari pelabuhan Sunda Kelapa selama dua hari perjalanan.</p><p>Menurut sumber Portugis, Sunda Kalapa merupakan salah satu pelabuhan yang dimiliki Kerajaan Sunda selain pelabuhan Banten, Pontang, Cigede, Tamgara dan Cimanuk. Sunda Kelapa yang dalam teks ini disebut Kalapa dianggap pelabuhan yang terpenting karena dapat ditempuh dari ibu kota kerajaan yang disebut dengan nama Dayo (dalam bahasa Sunda modern, dayeuh berarti "ibu kota") dalam tempo dua hari.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Negara</span><span class="infobox-value">Indonesia</span></div><div class="infobox-item"><span class="infobox-key">Dasar hukum pendirian</span><span class="infobox-value">UU No. 29 Tahun 2007 UU No. 2 Tahun 2024 UU No. 151 Tahun 2024</span></div><div class="infobox-item"><span class="infobox-key">Hari jadi</span><span class="infobox-value">22 Juni 1527; 498 tahun lalu (1527-06-22)</span></div><div class="infobox-item"><span class="infobox-key">Ibu kota</span><span class="infobox-value">Tidak ada[c]</span></div><div class="infobox-item"><span class="infobox-key">Jumlah satuan pemerintahan</span><span class="infobox-value">Daftar Kabupaten: 1Kota: 5Kecamatan: 44Kelurahan: 267</span></div><div class="infobox-item"><span class="infobox-key">• Jenis</span><span class="infobox-value">Wilayah administrasi khusus</span></div><p class="text-xs text-slate-500 mt-2">+ 8 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Jakarta_CBD.jpg/330px-Jakarta_CBD.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Busway_in_Bundaran_HI.jpg/250px-Busway_in_Bundaran_HI.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Istana-Merdeka.jpg/250px-Istana-Merdeka.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 15 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/jakarta" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/jakarta</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#2</span>
+                    <span class="text-xl font-bold gradient-text">London</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 15 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>London (bahasa Inggris: -code: en is deprecated /ˈlʌndən/ simakⓘ) adalah ibu kota Inggris dan Britania Raya yang merupakan wilayah metropolitan terbesar di Britania Raya.[catatan 1] Berlokasi di sepanjang Sungai Thames, London telah menjadi permukiman utama selama dua milenium sejak didirikan oleh Romawi pada abad ke-1 dengan nama Londinium. Pusat dari London kuno, yaitu City of London, sebagian besar masih tetap mempertahankan batas-batas abad pertengahannya. Sejak abad ke-19, nama London juga digunakan untuk menyebut kota metropolitan yang berkembang di sekitar pusat ini. Konurbasi dari wilayah-wilayah urban ini pada akhirnya membentuk Region London dan wilayah administratif London Raya. Wilayah ini diatur dan dibawahi oleh wali kota London dan Majelis London yang dipilih melalui pemilihan umum.</p><p>London adalah kota global terkemuka yang unggul dalam bidang seni, bisnis, pendidikan, hiburan, mode, keuangan, kesehatan, media, layanan profesional, penelitian dan pengembangan, pariwisata, serta transportasi. London, bersama dengan New York City, merupakan pusat keuangan terkemuka di dunia, dan menjadi kota dengan PDB terbesar kelima di dunia, atau yang tertinggi di Eropa. Kota ini dikatakan sebagai pusat kebudayaan dunia. London juga menjadi kota yang paling sering dikunjungi, dan tercatat sebagai kota dengan bandar udara tersibuk di dunia berdasarkan lalu lintas penumpang internasional. 43 universitas di London membentuk konsentrasi pendidikan tinggi terbesar di Eropa. Pada tahun 2012, London menjadi kota pertama yang telah menjadi tuan rumah penyelenggara Olimpiade Musim Panas modern sebanyak tiga kali.</p><p>London terdiri dari beragam masyarakat dan budaya dengan lebih dari 300 bahasa dituturkan oleh berbagai etnis. Pada bulan Maret 2011, London tercatat berpenduduk sebanyak 8.174.100 jiwa, atau sekitar 12,5% dari populasi Britania Raya secara keseluruhan. Hal ini menjadikan London sebagai kota terbesar di Uni Eropa menurut jumlah populasi. Kawasan perkotaan London Raya juga menjadi kawasan urban terbesar kedua (setelah Paris) di Uni Eropa dengan jumlah penduduk 8.278.251 jiwa, sedangkan kawasan metropolitan London adalah yang terbesar di Uni Eropa dengan populasinya yang diperkirakan mencapai 12 hingga 14 juta jiwa. Sebelumnya, London juga pernah menjadi kota dengan populasi terbesar di dunia pada periode 1831-1925.</p><p>London memiliki empat Situs Warisan Dunia, yaitu: Menara London; Kebun Botani Kew; komplek situs bersejarah yang terdiri dari Istana Westminster, Westminster Abbey dan Gereja St. Margaret; serta permukiman bersejarah Greenwich (tempat Observatorium Kerajaan menandai meridian utama, yaitu 0° garis bujur, dan GMT). Markah tanah terkenal London yang lainnya di antaranya Istana Buckingham, Mata London, Katedral Santo Paulus, Piccadilly Circus, Jembatan Menara, Stadion Wembley, Jembatan London, dan Trafalgar Square. London juga merupakan lokasi dari berbagai museum, galeri, perpustakaan, acara olahraga, dan institusi kebudayaan lainnya, termasuk British Museum, Museum Maritim Nasional, Perpustakaan Britania, Galeri Nasional, Tate Modern, Wimbledon, dan 40 Teater West End. London Underground merupakan jaringan kereta api bawah tanah tertua di dunia, serta yang terluas kedua setelah Shanghai Metro.</p><p>Asal-usul nama London belum bisa dipastikan. Nama itu merupakan sebuah nama yang kuno sekali dan bisa ditemui dalam sumber-sumber yang berasal dari awal abad ke-2. Nama London tercatat sekitar tahun 121 M sebagai Londinium yang diberi oleh penguasa Britania Romawi. Penjelasan paling awal tentang asal-usul London, meskipun saat ini penjelasan ini diabaikan, dikemukakan oleh Geoffrey dari Monmouth dalam Historia Regum Britanniae. Disana dijelaskan bahwa nama London dicetuskan oleh Raja Lud yang konon menaklukkan kota ini lalu menamainya Kaerlud.</p><p>Sejak tahun 1899, secara umum dipercaya bahwa nama London berasal dari bahasa Kelt yang bermakna tempat milik orang bernama *Londinos. Namun, penjelasan ini pada akhirnya juga ditolak. Pada tahun 1998, Richard Coates mengemukakan teorinya bahwa nama London berasal dari sebuah kata dalam bahasa Eropa Lama pra-Kelt yaitu *(p)lowonida yang berarti 'sungai yang terlalu luas untuk diarungi'. Coates berpendapat bahwa nama ini ditujukan untuk menyebut Sungai Thames yang mengalir melintasi London. Dari kata ini, permukiman ini mendapat nama dari bahasa Kelt, yaitu *Lowonidonjon. Kesulitan utama terletak pada merekonsiliasikan bentuk Latin dari Londinium dengan bentuk modern Llundain dari bahasa Wales. Diperkirakan bahwa nama Wales ini dipinjam kembali dalam bahasa Inggris di kemudian hari, dan dengan demikian tidak dapat digunakan sebagai dasar untuk merekonstruksi nama asli.</p><p>Hingga tahun 1889, nama "London" hanya ditujukan untuk menyebut City of London, tetapi semenjak itu pula nama ini turut digunakan untuk menyebut County of London dan saat ini dipergunakan untuk menyebut London Raya secara keseluruhan.</p><p>Meskipun terdapat bukti mengenai permukiman Suku Briton yang tersebar di kawasan London, tetapi permukiman utama yang paling awal sudah didirikan oleh bangsa Romawi pada tahun 43 M. Permukiman ini hanya bertahan selama 17 tahun. Pada tahun 61, Suku Iceni yang dipimpin oleh Ratu Boudica menyerbu dan membumihanguskan kota itu. Setelah itu, London dibangun kembali dari awal dengan perancangan yang matang dan pada akhirnya berkembang menggantikan Colchester sebagai ibu kota Provinsi Romawi untuk wilayah Britannia pada tahun 100. Puncaknya, pada abad ke-2, London Romawi ini didiami oleh sekitar 60.000 jiwa. Menjelang abad ke-7, kaum Anglo-Saxon mendirikan sebuah permukiman baru bernama Lundenwic yang terletak kira-kira satu mil (2 km) dari kota Romawi yang lama, di sekitar kawasan yang kini bernama Covent Garden.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Kedaulatan</span><span class="infobox-value">Britania Raya</span></div><div class="infobox-item"><span class="infobox-key">Negara</span><span class="infobox-value">Inggris</span></div><div class="infobox-item"><span class="infobox-key">Region</span><span class="infobox-value">London</span></div><div class="infobox-item"><span class="infobox-key">County</span><span class="infobox-value">London RayaCity of London</span></div><div class="infobox-item"><span class="infobox-key">Dihuni oleh Romawi</span><span class="infobox-value">AD 0047; 1979 tahun lalu (0047)  sebagai Londinium</span></div><div class="infobox-item"><span class="infobox-key">Distrik</span><span class="infobox-value">City of London dan 32 borough</span></div><p class="text-xs text-slate-500 mt-2">+ 10 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/London_Montage_L.jpg/330px-London_Montage_L.jpg" alt="London montage. Clicking on an image in the pictur..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">London montage. Clicking on an image in the pictur...</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Coat_of_Arms_of_The_City_of_London.svg/120px-Coat_of_Arms_of_The_City_of_London.svg.png" alt="Lambang resmi London" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Lambang resmi London</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/United_Kingdom_relief_location_map.jpg/250px-United_Kingdom_relief_location_map.jpg" alt="London di Britania Raya" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">London di Britania Raya</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 12 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/london" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/london</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#3</span>
+                    <span class="text-xl font-bold gradient-text">Islamabad</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">4 paragraf • 11 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Islamabad (bahasa Urdu:  اسلام آبادcode: ur is deprecated , Islāmābād har. 'Kota Islam', Pengucapan bahasa Urdu: [ɪsˌlaːmaːbaːd̪]) adalah ibukota Pakistan yang terletak di dalam Wilayah Ibukota Islamabad. Dengan populasi dua juta, ini adalah kota terbesar ke-10 di Pakistan, sementara wilayah metropolitan Islamabad-Rawalpindi adalah yang terbesar ketiga di Pakistan dengan populasi melebihi lima juta. Kota ini merupakan pusat pemerintahan Pakistan dan dikelola oleh Korporasi Metropolitan Islamabad, didukung oleh Otoritas Pengembangan Ibu kota (CDA).</p><p>Islamabad terletak di Dataran Tinggi Pothohar di bagian timur laut negara itu, antara Distrik Rawalpindi dan Taman Nasional Bukit Margalla di utara. Wilayah ini secara sejarah menjadi bagian dari persimpangan Punjab dan Khyber Pakhtunkhwa dengan Margalla Pass bertindak sebagai pintu gerbang antara kedua wilayah tersebut.</p><p>Islamabad dibangun pada 1960-an untuk menggantikan Karachi sebagai ibukota Pakistan. Pemerintah pusat kota membagi kota menjadi delapan zona, termasuk wilayah administratif, diplomatik, daerah pemukiman, sektor pendidikan, sektor industri, kawasan komersial, dan daerah pedesaan hijau. Kota ini dikenal dengan adanya beberapa taman dan hutan, termasuk Taman Nasional Bukit Margalla dan Taman Shakarparian. Kota ini merupakan rumah bagi Masjid Faisal, masjid terbesar di Asia Selatan, sekaligus masjid terbesar keempat di dunia. Taman lainnya terdapat Monumen Nasional dan Lapangan Demokrasi Pakistan.</p><p>Artikel bertopik geografi atau tempat Pakistan ini adalah sebuah rintisan. Anda dapat membantu Wikipedia dengan mengembangkannya.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Negara</span><span class="infobox-value">Pakistan</span></div><div class="infobox-item"><span class="infobox-key">Pembagian administratif</span><span class="infobox-value">Wilayah Ibu Kota Islamabad</span></div><div class="infobox-item"><span class="infobox-key">Dibangun</span><span class="infobox-value">1960</span></div><div class="infobox-item"><span class="infobox-key">Didirikan</span><span class="infobox-value">14 Agustus 1967; 58 tahun lalu (1967-08-14)</span></div><div class="infobox-item"><span class="infobox-key">• Jenis</span><span class="infobox-value">Korporasi Metropolitan</span></div><div class="infobox-item"><span class="infobox-key">• Wali Kota</span><span class="infobox-value">Peer Adil Shah Gillani</span></div><p class="text-xs text-slate-500 mt-2">+ 9 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Islamabad_collage.jpg/330px-Islamabad_collage.jpg" alt="Searah jarum jam dari atas:  Masjid Faisal, Majeli..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Searah jarum jam dari atas:  Masjid Faisal, Majeli...</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Pakistan_relief_location_map.jpg/250px-Pakistan_relief_location_map.jpg" alt="Islamabad di Pakistan" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Islamabad di Pakistan</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/20px-Red_pog.svg.png" alt="Islamabad" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Islamabad</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 8 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/islamabad" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/islamabad</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#4</span>
+                    <span class="text-xl font-bold gradient-text">Washington</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">18 paragraf • 11 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Washington, adalah sebuah negara bagian Amerika Serikat. Negara bagian Washington berbeda dengan ibu kota Amerika Serikat: Washington D.C..Negara bagian ini terletak di bagian barat. Pada tahun 2009, negara bagian ini memiliki jumlah penduduk sebesar 6,459,224 jiwa dan memiliki luas wilayah 184,827 km². Ibu kotanya adalah Olympia.</p><p>Negara bagian ini memiliki angka kepadatan penduduk sebesar 34,2 jiwa/km².</p><p>Washington dinamai Presiden George Washington oleh tindakan Kongres Amerika Serikat selama pembentukan Washington Territory pada tahun 1853; wilayah itu diberi nama "Columbia", untuk Sungai Kolombia dan Distrik Columbia, tetapi perwakilan Kentucky Richard H. Stanton menganggap nama itu terlalu mirip dengan District of Columbia (ibu kota nasional, yang berisi kota Washington), dan mengusulkan penamaan wilayah baru dengan nama Presiden Washington. Washington adalah satu-satunya negara bagian AS yang dinamai menurut nama seorang presiden.</p><p>Kebingungan atas negara bagian Washington dan kota Washington, D.C., menyebabkan usulan penggantian nama selama proses kenegaraan untuk Washington pada tahun 1889, termasuk saran David Dudley Field II untuk menamai negara bagian baru "Tacoma"; proposal ini gagal mendapatkan dukungan. Washington, D.C., memiliki gerakan kenegaraan di abad ke-21 telah memasukkan proposal untuk menggunakan nama "Negara Bagian Washington, Douglass Commonwealth", yang akan bertentangan dengan keadaan Washington saat ini. Penduduk Washington (dikenal sebagai "Washingtonians") dan Pacific Northwest hanya menyebut negara bagian sebagai "Washington", dan ibu kota negara "Washington, D.C.", "Washington lainnya", atau cukup "D.C."</p><p>Sisa-sisa kerangka berusia 9.300 tahun dari Kennewick Man, salah satu sisa-sisa manusia tertua dan terlengkap yang ditemukan di Amerika Utara, ditemukan di Washington pada 1990-an. Daerah tersebut telah diketahui menjadi lokasi megathrust di masa lalu, yang terakhir adalah Gempa Cascadia tahun 1700. Sebelum kedatangan orang Eropa, wilayah ini memiliki banyak suku-suku masyarakat adat yang mapan, terkenal karena tiang totem mereka dan kano dan topeng berukir mereka. Industri mereka yang menonjol adalah penangkapan ikan salmon dan, terutama di antara Makah, perburuan paus. Masyarakat pedalaman memiliki budaya berbasis subsisten yang berbeda berdasarkan berburu, mengumpulkan makanan dan beberapa bentuk pertanian, serta ketergantungan pada salmon dari Columbia dan anak-anak sungainya. Epidemi smallpox tahun 1770-an menghancurkan populasi penduduk asli Amerika.</p><p>Pendaratan Eropa pertama yang tercatat di pantai Washington dilakukan oleh Kapten Spanyol Don Bruno de Heceta pada tahun 1775, di atas Santiago, bagian dari dua kapal flotilla dengan Sonora. Dia mengklaim tanah pesisir hingga Pangeran William Sound untuk Spanyol sebagai bagian dari klaim hak mereka di bawah Perjanjian Tordesillas, yang mereka pertahankan menjadikan Pasifik sebagai "danau Spanyol" dan semua pantainya menjadi bagian dari Kekaisaran Spanyol.</p><p>Pada tahun 1778, penjelajah asal Britania Raya, Kapten James Cook melihat Cape Flattery, di pintu masuk ke Selat Juan de Fuca, tetapi Cook tidak menyadari jika selat itu ada. Tidak ditemukan sampai Charles William Barkley, kapten Imperial Eagle, melihatnya pada tahun 1787. Selat tersebut kemudian dieksplorasi lebih lanjut oleh penjelajah asal spanyol Manuel Quimper pada tahun 1790 dan Francisco de Eliza pada tahun 1791, dan penjelajah Inggris Kapten George Vancouver pada tahun 1792.</p><p>Pertumbuhan penduduk Wilayah Oregon di utara Sungai Columbia secara resmi meminta wilayah baru. Sebagai hasil dari Konvensi Monticello, yang diadakan saat ini Cowlitz County, Kongres Amerika Serikat mengesahkan undang-undang dan Presiden Millard Fillmore menandatangani undang-undang pada tanggal 2 Maret 1853, pembentukan Washington Territory baru. Batas Washington Wilayah awalnya diperpanjang lebih jauh ke timur daripada negara bagian sekarang, termasuk apa yang sekarang Idaho Panhandle dan bagian barat Montana, dan mengambil lebih banyak tanah ke tenggara yang tertinggal ketika Oregon diakui sebagai negara bagian; pembentukan Wilayah Idaho pada tahun 1863 menetapkan perbatasan timur terakhir. Konstitusi negara bagian Washington dirancang dan diratifikasi pada tahun 1878, tetapi tidak pernah diadopsi secara resmi. Meskipun tidak pernah disetujui oleh Kongres Amerika Serikat, konstitusi 1878 adalah dokumen sejarah penting yang menunjukkan pemikiran politik saat itu; itu digunakan secara luas selama penyusunan konstitusi negara bagian Washington tahun 1889, satu-satunya Konstitusi resmi Negara Bagian Washington. Washington menjadi negara bagian 42 negara bagian Amerika Serikat pada 11 November 1889.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 10 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Negara</span><span class="infobox-value">Amerika Serikat</span></div><div class="infobox-item"><span class="infobox-key">Sebelum menjadi negara bagian</span><span class="infobox-value">Washington Territory</span></div><div class="infobox-item"><span class="infobox-key">Bergabung ke Serikat</span><span class="infobox-value">11 November 1889 (42)</span></div><div class="infobox-item"><span class="infobox-key">Kota terbesar</span><span class="infobox-value">Seattle</span></div><div class="infobox-item"><span class="infobox-key">• Gubernur</span><span class="infobox-value">Jay Inslee (D)</span></div><div class="infobox-item"><span class="infobox-key">• Wakil Gubernur</span><span class="infobox-value">Brad Owen (D)</span></div><p class="text-xs text-slate-500 mt-2">+ 10 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Seal_of_Washington.svg/120px-Seal_of_Washington.svg.png" alt="Lambang resmi Washington" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Lambang resmi Washington</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Map_of_USA_WA.svg/330px-Map_of_USA_WA.svg.png" alt="Peta Amerika Serikat dengan  ditandai" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Peta Amerika Serikat dengan  ditandai</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Map_of_USA_WA.svg/330px-Map_of_USA_WA.svg.png" alt="Peta Amerika Serikat dengan  ditandai" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Peta Amerika Serikat dengan  ditandai</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 8 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/washington" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/washington</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#5</span>
+                    <span class="text-xl font-bold gradient-text">One Piece</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 3 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>One Piece (Jepang: ワンピースcode: ja is deprecated , Hepburn: Wan Pīsu) adalah sebuah seri manga Jepang yang ditulis dan diilustrasikan oleh Eiichiro Oda. Manga ini telah dimuat di majalah Weekly Shōnen Jump milik Shueisha sejak tanggal 22 Juli 1997, dan telah dibundel menjadi 105 volume tankōbon hingga Maret 2023. Ceritanya mengisahkan petualangan Monkey D. Luffy, seorang anak laki-laki yang memiliki kemampuan tubuh elastis seperti karet setelah memakan Buah Iblis secara tidak disengaja. Luffy bersama kru bajak lautnya, yang dinamakan Bajak Laut Topi Jerami, menjelajahi Grand Line untuk mencari harta karun terbesar di dunia yang dikenal sebagai "One Piece" dalam rangka untuk menjadi Raja Bajak Laut yang berikutnya.</p><p>Manga ini telah diadaptasi menjadi sebuah animasi video asli (OVA) yang diproduksi oleh Production I.G pada tahun 1998, dan sebuah serial anime yang diproduksi oleh Toei Animation, yang mulai tayang di Jepang pada tahun 1999. Sebagai tambahan, Toei juga telah memproduksi tiga belas film animasi, satu OVA dan sebelas episode khusus televisi. Beberapa perusahaan telah mengembangkan berbagai jenis pernak-pernik seperti permainan kartu dagang dan beberapa permainan video (games). Versi manganya telah dilisensi untuk dirilis dalam bahasa Inggris di Amerika Utara dan Britania Raya oleh Viz Media dan di Australia oleh Madman Entertainment. Versi animenya telah dilisensi oleh 4Kids Entertainment untuk perilisan versi bahasa Inggris di Amerika Utara pada tahun 2004, sebelum lisensi tersebut dicabut dan kemudian diakuisisi oleh Funimation pada tahun 2007.</p><p>One Piece telah menerima pujian atas alur cerita, gambar, karakterisasi, dan humornya. Beberapa volume dari manga ini telah memecahkan rekor penerbitan, termasuk cetakan awal tertinggi dari buku apa pun di Jepang. Situs web resmi untuk manga One Piece karya Eiichiro Oda mengumumkan bahwa manga ini telah meraih Guinness World Record untuk kategori "salinan terbanyak yang diterbitkan untuk seri buku komik yang sama oleh seorang penulis tunggal". Hingga bulan Mei 2018, manga ini telah terjual hingga lebih dari 440 juta salinan di seluruh dunia, menjadikannya seri manga terlaris dalam sejarah. One Piece juga menjadi manga terlaris selama sepuluh tahun berturut-turut pada tahun 2017.</p><p>Manga One Piece mulai diserialisasikan pada majalah Shonen Jump edisi #34 pada 4 Agustus 1997. Animenya mulai diproduksi oleh Toei Animation di Fuji Television pada 20 Oktober 1999.</p><p>Pada awalnya, Eiichiro Oda merencanakan One Piece akan berjalan sekitar 5 tahun, dan dia telah menetapkan endingnya. Namun, dia terlalu "menikmati" jalan ceritanya dan sekarang dia tidak tahu kapan One Piece akan berakhir.</p><p>One Piece merupakan manga terlaris sepanjang sejarah Shonen Jump. Manga ini juga yang menyebabkan total penjualan Shonen Jump naik pada 11 tahun terakhir ini. Volume 25 memegang rekor penjualan manga di Jepang, dengan 2.630.000 unit terjual pada cetakan pertama. Dan volume 46 mencapai lebih dari 140.000.000 unit terjual dan merupakan manga tercepat yang mencapai total penjualan 100.000.000.</p><p>Hingga saat ini One Piece memecahkan rekor sebagai manga paling laris sepanjang sejarah. Kesuksesan One Piece bahkan melebihi gabungan no 2 Naruto, no 3 Kimi ni Todoke, no 4 Fairy Tail, no 5 Bleach, no 6 Bakuman, no 7 Gintama, dan no 8 Fullmetal Alchemist dengan total penjualan One Piece lebih dari 300 juta kopi.</p><p>One Piece juga memecahkan rekor dunia penjualan tercepat dengan volume 63 terjual 2,119,400 dalam 4 hari (meskipun rekor sebelumnya juga dipegang One Piece volume 60 dan 61). Selain itu One Piece juga memecahkan rekor Jepang sebagai Cetakan pertama terbanyak. One Piece volume 63 memegang rekor Jepang dengan 3.9 juta kopi di cetakan pertama (meski rekor sebelumnya dipegang One Piece 60, 61, dan 62) rekor sebelum One Piece adalah Harry Potter and the Order of the Phoenix dengan 2.9 juta kopi.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Genre</span><span class="infobox-value">Petualangan, fantasi</span></div><div class="infobox-item"><span class="infobox-key">Pengarang</span><span class="infobox-value">Eiichiro Oda</span></div><div class="infobox-item"><span class="infobox-key">Penerbit</span><span class="infobox-value">Shueisha</span></div><div class="infobox-item"><span class="infobox-key">Penerbit bahasa Inggris</span><span class="infobox-value">NA Viz Media</span></div><div class="infobox-item"><span class="infobox-key">Penerbit bahasa Indonesia</span><span class="infobox-value">Elex Media Komputindo</span></div><div class="infobox-item"><span class="infobox-key">Majalah</span><span class="infobox-value">Weekly Shōnen Jump</span></div><p class="text-xs text-slate-500 mt-2">+ 11 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg/250px-One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Wikipe-tan_face.svg/20px-Wikipe-tan_face.svg.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/9/90/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg/250px-One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/one_piece" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/one_piece</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#6</span>
+                    <span class="text-xl font-bold gradient-text">Indonesia</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">19 paragraf • 17 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Indonesia, dengan nama resmi Republik Indonesia,[b] adalah sebuah negara di Asia Tenggara dan Oseania, yang terletak di antara Samudra Hindia dan Samudra Pasifik. Letak geografis negara ini secara maritim diapit oleh Samudra Hindia di sisi barat daya dan Samudra Pasifik di sisi timur laut, juga merupakan negara di ujung tenggara wilayah Asia. Secara daratan berada di antara superbenua Afro-Eurasia dan daratan benua Oseania (Australia), juga menjadi salah satu negara tropis yang dilalui oleh garis ekuator khatulistiwa. Indonesia memiliki luas wilayah darat sebesar 1.904.569 km², sehingga menjadikannya sebagai negara terluas ke-14 dunia.</p><p>Indonesia merupakan negara kepulauan yang membentang paling luas dan menjadi negara dengan pulau terbanyak di muka bumi, dengan jumlah pulau sebanyak 17.380 pulau (2024). Nama alternatif yang dipakai untuk Kepulauan Indonesia disebut Nusantara. Selain itu, Indonesia juga menjadi negara berpenduduk terbanyak ke-4 di dunia dengan total penduduk yang tercatat lembaga pemerintah BPS telah melebihi 275.344.166 jiwa pada tahun 2022.  Indonesia adalah salah satu negara multirasial, multietnis, multikultural, dan multiteisme. Indonesia berbatasan dengan sejumlah negara di Asia Tenggara dan Oseania. Indonesia berbatasan di wilayah darat dengan Malaysia di Pulau Kalimantan dan Sebatik, dengan Papua Nugini di Pulau Papua, dan dengan Timor Leste di Pulau Timor. Negara yang hanya berbatasan laut dengan Indonesia adalah Singapura, Filipina, Australia, Thailand, Vietnam, Palau, dan Wilayah Persatuan Kepulauan Andaman dan Nikobar, India.</p><p>Indonesia adalah negara kesatuan dengan bentuk pemerintahan republik berdasarkan konstitusi yang sah, yaitu Undang-Undang Dasar Negara Republik Indonesia Tahun 1945 (UUD 1945). Berdasarkan UUD 1945 pula, Dewan Perwakilan Rakyat (DPR), Dewan Perwakilan Daerah (DPD), dan Presiden dicalonkan lalu dipilih melalui pemilihan umum. Ibu kota Indonesia saat ini adalah Jakarta. Pada tanggal 18 Januari 2022, Pemerintah Indonesia menetapkan Ibu Kota Nusantara yang berada di Pulau Kalimantan, yang menempati wilayah Kabupaten Penajam Paser Utara, untuk menggantikan Jakarta sebagai ibu kota yang baru. Hingga tahun 2026, proses peralihan ibu kota masih berlangsung.</p><p>Peradaban Indonesia telah dipengaruhi dan bercampur dengan sistem bangsa-bangsa pendatang maupun misi ekspansif imperium dunia semisal peradaban bangsa Tionghoa (China), India, Persia, Belanda, Jepang, hingga Arab. Gugusan pulau Indonesia telah menjadi wilayah perdagangan penting sejak abad ke-7, yaitu sejak berdirinya Sriwijaya dan masifnya eksplorasi lintas samudra oleh para pengembara Austronesia, Asia, hingga Eropa yang singgah di pulau Nusantara. Akan tetapi, catatan sejarah membuktikan bahwa peradaban dan ajaran asli Indonesia berakar pada sistem animisme dan dinamisme.</p><p>Tepatnya pada filosofi penghormatan terhadap roh nenek moyang dan konsep relasi sakral simbiosis melalui upacara persembahan kepada makhluk-makhluk yang dianggap sakral. Hal ini bertujuan untuk menjaga keseimbangan kehidupan manusia di alam agar tetap terpelihara serta terhindar dari bencana yang disebabkan oleh tindakan sewenang-wenang sebagian pihak. Ajaran kepercayaan umumnya terpusat pada suku-suku pedalaman seperti sistem Kejawen suku Jawa, Dayak di Kalimantan dan Tana Toraja di Sulawesi yang dilestarikan ribuan tahun sebelum agama besar dunia datang ke bumi Nusantara.</p><p>Agama pendatang dari Semenanjung India Hinduisme-Buddhisme tumbuh, berkembang, dan berasimilasi di Kepulauan Indonesia pada awal abad ke-4 hingga abad ke-13 Masehi dengan mewariskan bahasa Sansekerta dan pilar-pilar budaya dan bahasa di Kepulauan Nusantara. Setelah itu, para pedagang sufi dan Islam sunni membawa agama dan kebudayaan Islam sekitar abad ke-8 hingga abad ke-16. Pada akhir abad ke-15, bangsa-bangsa Eropa datang ke Kepulauan Indonesia dan berperang untuk memonopoli perdagangan rempah-rempah di Maluku semasa Zaman Penjelajahan. Setelah berada di bawah kolonial Belanda, Indonesia yang saat itu bernama Hindia Belanda, memproklamasikan kemerdekaan pada akhir Perang Dunia II, tepatnya pada tanggal 17 Agustus 1945. Selanjutnya, Indonesia mendapat berbagai tantangan dan persoalan berat, mulai dari bencana alam, praktik korupsi yang masif, konflik sosial, gerakan separatisme, proses demokratisasi, dan periode pembangunan, perubahan dan perkembangan sosial–ekonomi–politik, serta modernisasi yang pesat.</p><p>Saat ini, terdapat lebih dari  1.300 etnis dan 700 bahasa lokal ataupun dialek daerah di Nusantara. Indonesia mengedepankan Adat istiadat dan budaya lokal sebagai penguatan provinsi. Berdasarkan rumpun bangsa, Indonesia terdiri atas bangsa asli yakni Austronesia dan Melanesia. Bangsa Austronesia yang terbesar jumlahnya lebih banyak mendiami Indonesia bagian barat. Dengan suku Jawa dan Sunda membentuk kelompok suku bangsa terbesar dengan persentase mencapai 57% dari seluruh penduduk Indonesia. Semboyan nasional Indonesia, "Bhinneka Tunggal Ika" (Beraneka ragam tetapi bersatu), bermakna keberagaman sosial-budaya yang membentuk satu kesatuan negara. Selain memiliki penduduk yang padat dan wilayah yang luas, Indonesia memiliki flora-fauna yang mendukung tingkat keanekaragaman hayati terbesar ke-2 di dunia, di bawah Brazil.</p><p>Indonesia merupakan lakuran bahasa Yunani kuno yaitu Indus yang merujuk kepada Sungai Indus di India dan nesos yang berarti pulau. Jadi, kata Indonesia berarti wilayah kepulauan India, atau kepulauan yang berada di wilayah Hindia. Pada tahun 1850, George Windsor Earl, seorang etnolog berkebangsaan Inggris, awalnya mengusulkan istilah Indunesia dan Malayunesia untuk penduduk Kepulauan Hindia atau Kepulauan Melayu. Kemudian, James Richardson Logan, menggunakan kata Indonesia sebagai sinonim dari Kepulauan India pada jurnal yang sama. Namun, penulisan akademik Belanda di media Hindia Belanda enggan menggunakan kata Indonesia, dan lebih memilih Kepulauan Melayu (Maleische Archipel); Hindia Timur Belanda (Nederlandsch Oost Indië), atau Hindia (Indië); Timur (de Oost); dan bahkan Insulinde (istilah ini diperkenalkan tahun 1860 dalam novel Max Havelaar (1859) yang ditulis oleh Multatuli mengenai kritik terhadap kolonialisme Belanda).</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 11 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Ibu kota(dan kota terbesar)</span><span class="infobox-value">Jakarta6°11′S 106°50′E﻿ / ﻿6.183°S 106.833°E﻿ / -6.183; 106.833</span></div><div class="infobox-item"><span class="infobox-key">Bahasa resmi</span><span class="infobox-value">Indonesia (berakar dari Melayu Johor-Riau)</span></div><div class="infobox-item"><span class="infobox-key">Bahasa daerah</span><span class="infobox-value">Lebih dari 700 bahasa</span></div><div class="infobox-item"><span class="infobox-key">Kelompok etnik  (2010)[2]</span><span class="infobox-value">40,22% Jawa 15,50% Sunda 3,58% Batak 3,03% Madura 2,88% Betawi 2,73% Minangkabau 2,69% Bugis 2,27% Melayu 27,10% Lainnya</span></div><div class="infobox-item"><span class="infobox-key">Agama  (2023)[3][a]</span><span class="infobox-value">87,08% Islam 10,47% Kekristenan 7,41% Protestan 3,06% Katolik 1,68% Hinduisme0,72% Buddhisme0,03% Konfusianisme0,02% Keperayaan</span></div><div class="infobox-item"><span class="infobox-key">Pemerintahan</span><span class="infobox-value">Negara kesatuanRepublik berbasis demokrasi presidensial</span></div><p class="text-xs text-slate-500 mt-2">+ 9 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/National_emblem_of_Indonesia_Garuda_Pancasila.svg/120px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png" alt="{{{coat_alt}}}" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">{{{coat_alt}}}</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Indonesia_%28orthographic_projection%29.svg/250px-Indonesia_%28orthographic_projection%29.svg.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Location_Indonesia_ASEAN.svg/330px-Location_Indonesia_ASEAN.svg.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 14 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/indonesia" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/indonesia</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#7</span>
+                    <span class="text-xl font-bold gradient-text">Kereta</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 9 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Kereta adalah alat transportasi yang digunakan untuk mengangkut barang atau orang. Kereta digunakan untuk mengangkut barang, hasil pertanian atau kadang-kadang orang dari suatu tempat ke tempat lain. Kereta biasanya ditarik oleh kuda, bagal, sapi ataupun kendaraan lain semisal lokomotif. Kereta dapat ditarik oleh satu ekor atau beberapa ekor hewan.</p><p>Kereta api adalah sarana transportasi berupa kendaraan dengan tenaga gerak, baik berjalan sendiri maupun dirangkaikan dengan kendaraan lainnya, yang akan ataupun sedang bergerak di rel. Kereta api merupakan alat transportasi massal yang umumnya terdiri dari lokomotif (kendaraan dengan tenaga gerak yang berjalan sendiri) dan rangkaian kereta penumpang dan gerbong barang (dirangkaikan dengan kendaraan lainnya). Rangkaian kereta penumpang dan gerbong barang tersebut berukuran relatif luas sehingga mampu memuat penumpang maupun barang dalam skala besar. Karena sifatnya sebagai angkutan massal efektif, beberapa negara berusaha memanfaatkannya secara maksimal sebagai alat transportasi utama angkutan darat baik di dalam kota, antarkota, maupun antarnegara.</p><p>Kereta api monorel (kereta rel tunggal) adalah kereta api yang jalurnya tidak seperti jalur kereta yang biasa dijumpai. Rel kereta ini hanya terdiri dari satu batang besi. Letak kereta api didesain menggantung pada rel atau di atas rel. Karena efisien, biasanya digunakan sebagai alat transportasi kota khususnya di kota-kota metropolitan dunia dan dirancang mirip seperti jalan layang.</p><p>Kereta api barang adalah kereta api yang digunakan untuk mengangkut barang (kargo), pupuk, hasil tambang (pasir, batu, batu bara ataupun mineral), ataupun kereta api trailer yang digunakan untuk mengangkut peti kemas. Selain itu digunakan gerbong khusus untuk mengangkut anak, ataupun tangki untuk mengangkut minyak atau komoditas cair lainnya (seperti bahan kimia dan atau yang lainnya).</p><p>Selain itu terdapat kereta api trailer khusus yang digunakan untuk mengangut tank dan perlengkapan militer lainnya (meriam, rudal dll).</p><p>Kereta rel listrik, disingkat KRL, merupakan kereta rel yang bergerak dengan sistem propulsi motor listrik. Di Indonesia, kereta rel listrik terutama ditemukan di kawasan Jabodetabek, dan Daerah Istimewa Yogyakarta. merupakan kereta yang melayani para komuter (lihat KRL Commuter Line). Kereta rel listrik berbeda dengan lokomotif listrik.</p><p>Gerbong adalah wagon kendaraan yang digunakan untuk mengangkut barang. Gerbong berbeda dengan kereta, yang berarti wagon kendaraan yang digunakan untuk mengangkut orang.</p><p>Angkutan barang melalui kereta api unggul untuk jarak perjalanan menengah, dan tidak sesuai untuk jarak perjalanan pendek yang lebih sesuai untuk angkutan jalan ataupun sangat jauh yang lebih sesuai untuk angkutan laut.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/CC_203_40_%28CC_203_0203%29.jpg/250px-CC_203_40_%28CC_203_0203%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Mataram_in_BKS.jpg/250px-Mataram_in_BKS.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/C4telgdr.jpeg/250px-C4telgdr.jpeg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 6 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/kereta" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/kereta</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#8</span>
+                    <span class="text-xl font-bold gradient-text">Teknologi</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">19 paragraf • 10 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Teknologi adalah penerapan pengetahuan konseptual untuk mencapai tujuan praktis, terutama dengan cara yang dapat direproduksi. Kata teknologi juga dapat bermakna produk yang dihasilkan dari usaha tersebut, mencakup baik alat yang berwujud seperti perkakas atau mesin, maupun yang tidak berwujud seperti perangkat lunak. Teknologi memainkan peran krusial dalam sains, rekayasa, dan kehidupan sehari-hari.</p><p>Kemajuan teknologi telah memicu perubahan signifikan dalam masyarakat. Teknologi paling awal yang diketahui adalah alat batu, yang digunakan selama masa prasejarah, diikuti oleh pengendalian api, yang pada gilirannya berkontribusi pada pertumbuhan otak manusia dan perkembangan bahasa selama Zaman Es, menurut hipotesis memasak. Penemuan roda pada Zaman Perunggu memungkinkan perjalanan yang lebih jauh dan penciptaan mesin yang lebih kompleks. Penemuan teknologi yang lebih baru, termasuk mesin cetak, telepon, dan internet, telah menurunkan hambatan komunikasi dan mengantarkan kita pada ekonomi pengetahuan.</p><p>Meskipun teknologi berkontribusi terhadap pembangunan ekonomi dan meningkatkan kemakmuran manusia, teknologi juga dapat menimbulkan dampak negatif seperti polusi dan penipisan sumber daya, serta dapat menyebabkan kerugian sosial seperti pengangguran teknologi akibat otomatisasi. Akibatnya, perdebatan filosofis dan politik mengenai peran dan penggunaan teknologi, etika teknologi, serta cara-cara untuk memitigasi dampak buruknya terus berlangsung.</p><p>Teknologi adalah istilah yang berasal dari awal abad ke-17 yang bermakna 'perlakuan sistematis' (dari bahasa Yunani Τεχνολογίαcode: grc is deprecated , dari Yunani: τέχνη, romanized: tékhnē, har. 'kerajinan, seni'code: el is deprecated  dan -λογία (-logíā), 'studi, pengetahuan'). Istilah ini didahului penggunaannya oleh kata Yunani Kuno τέχνη (tékhnē), yang digunakan untuk mengartikan 'pengetahuan tentang cara membuat sesuatu', yang mencakup aktivitas seperti arsitektur.</p><p>Bermula pada abad ke-19, orang Eropa kontinental mulai menggunakan istilah Technikcode: de is deprecated  (bahasa Jerman) atau techniquecode: fr is deprecated  (bahasa Prancis) untuk merujuk pada 'cara melakukan', yang mencakup semua seni teknis, seperti menari, navigasi, atau percetakan, terlepas dari apakah hal itu memerlukan alat atau instrumen. Pada saat itu, Technologiecode: de is deprecated  (bahasa Jerman dan Prancis) merujuk pada disiplin akademis yang mempelajari "metode seni dan kriya", atau pada disiplin politik yang "dimaksudkan untuk membuat undang-undang tentang fungsi seni dan kriya." Perbedaan antara Technikcode: de is deprecated  dan Technologiecode: de is deprecated  tidak terdapat dalam bahasa Inggris, sehingga keduanya diterjemahkan sebagai technology. Istilah tersebut sebelumnya tidak umum dalam bahasa Inggris dan sebagian besar merujuk pada disiplin akademis, seperti dalam Institut Teknologi Massachusetts.</p><p>Pada abad ke-20, sebagai hasil dari kemajuan ilmiah dan Revolusi Industri Kedua, teknologi berhenti dianggap sebagai disiplin akademis yang terpisah dan mengambil makna: penggunaan pengetahuan secara sistemik untuk tujuan praktis.</p><p>Perkakas pada mulanya dikembangkan oleh hominid melalui pengamatan serta metode coba-coba. Sekitar 2 jtl (juta tahun lalu), mereka belajar menciptakan perkakas batu perdana dengan cara memecah serpihan dari batu kerakal, sehingga membentuk kapak genggam yang tajam. Praktik ini disempurnakan pada 75 rtl (ribu tahun lalu) menjadi pemangkasan tekan, yang memungkinkan pengerjaan yang jauh lebih halus.</p><p>Penemuan api dideskripsikan oleh Charles Darwin sebagai "mungkin [penemuan] terhebat yang pernah dilakukan oleh manusia". Bukti arkeologis, pola makan, dan sosial menunjukkan adanya "penggunaan api [oleh manusia] secara berkelanjutan" setidaknya sejak 1,5 jtl. Api, yang dinyalakan dengan kayu dan arang, memungkinkan manusia purba memasak makanan mereka guna meningkatkan kemudahan mencernanya, memperbaiki nilai gizinya, serta memperbanyak jenis bahan pangan yang dapat dikonsumsi. Hipotesis memasak mengajukan gagasan bahwa kemampuan memasak mendorong peningkatan ukuran otak hominid, meskipun beberapa peneliti menganggap buktinya belum konklusif. Bukti arkeologis mengenai tungku diperkirakan berasal dari 790 rtl; para peneliti meyakini hal ini kemungkinan besar telah mengintensifkan sosialisasi manusia dan mungkin berkontribusi pada kemunculan bahasa.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 11 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Dampfturbine_Montage01.jpg/500px-Dampfturbine_Montage01.jpg" alt="Foto para teknisi yang sedang mengerjakan sebuah t..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Foto para teknisi yang sedang mengerjakan sebuah t...</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Faustkeil_Nachbau%2C_2020_PD_a-7.jpg/250px-Faustkeil_Nachbau%2C_2020_PD_a-7.jpg" alt="lihat keterangan" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">lihat keterangan</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/N%C3%A9olithique_0001.jpg/250px-N%C3%A9olithique_0001.jpg" alt="Foto peralatan Neolitikum yang dipamerkan" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Foto peralatan Neolitikum yang dipamerkan</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 7 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/teknologi" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/teknologi</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#9</span>
+                    <span class="text-xl font-bold gradient-text">Pariwisata</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">14 paragraf • 1 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Pariwisata (bahasa Inggris: tourismcode: en is deprecated ) adalah suatu perjalanan yang dilakukan untuk rekreasi atau liburan dan juga persiapan yang dilakukan untuk kegiatan ini. Seorang wisatawan adalah seseorang yang melakukan perjalanan paling tidak sejauh 80 km (50 mil) dari rumahnya dengan tujuan rekreasi, merupakan definisi oleh Organisasi Pariwisata Dunia. Buku The True Guide for Foreigners Traveling in France, to Appreciate Its Beauties, Learn the Language and Take Exercise yang ditulis pada tahun 1672 oleh seorang bangsawan Prancis, merupakan salah satu buku awal yang menuliskan mengenai pariwisata di dunia</p><p>Definisi yang lebih lengkap,pariwisata adalah industri jasa. Mereka menangani jasa mulai dari angkutan, jasa keramahan, tempat tinggal, makanan, minuman dan jasa bersangkutan lainnya seperti bank, asuransi, keamanan, dan lain-lain. Pariwisata juga menawarkan tempat istirahat, budaya, pelarian, petualangan, pengalaman baru dan berbeda lainnya.</p><p>Banyak negara bergantung banyak dari industri pariwisata ini sebagai sumber pajak dan pendapatan untuk perusahaan yang menjual jasa kepada wisatawan. Oleh karena itu pengembangan industri pariwisata ini adalah salah satu strategi yang dipakai oleh Organisasi Non-Pemerintah untuk mempromosikan wilayah tertentu sebagai daerah wisata untuk meningkatkan perdagangan melalui penjualan barang dan jasa kepada orang bukan setempat.</p><p>Menurut Undang Undang No.10/2009 tentang Kepariwisataan, yang dimaksud dengan pariwisata:</p><p>Pariwisata adalah berbagai macam kegiatan wisata yang didukung oleh berbagai fasilitas serta layanan yang disediakan masyarakat, pengusaha, Pemerintah dan Pemerintah Daerah.</p><p>Kata pariwisata berasal dari bahasa Sanskerta "pari" (berkali-kali) dan "wisata" (bepergian). Secara harfiah, pariwisata berarti "perjalanan yang dilakukan berkali-kali ke suatu tempat.</p><p>Istilah lain yang juga digunakan atau bersinonim dengan "pariwisata" di antaranya pelancongan atau turisme. Selain itu, istilah lain yang bersinonim dengan "wisatawan" di antaranya pelancong, darmakelana, atau turis.</p><p>Industri Pariwisata dapat diartikan sebagai sehimpunan bidang usaha yang menghasilkan berbagai jasa dan barang yang dibutuhkan oleh mereka yang melakukan perjalanan wisata. Menurut S. Medlik, setiap produk, baik yang nyata maupun maya yang disajikan untuk memenuhi kebutuhan tertentu manusia, hendaknya dinilai sebagai produk industri. Jika sejemput kesatuan produk hadir di antara berbagai perusahaan dan organisasi sedemikian sehingga memberi ciri pada keseluruhan fungsi mereka serta meneatnya dalam kehidupan Inonn, hendaknya dinilai sebuah industri.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 6 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Tourism.paris.river.arp.750pix.jpg/250px-Tourism.paris.river.arp.750pix.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/wisata" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/wisata</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#10</span>
+                    <span class="text-xl font-bold gradient-text">Kota Bandung</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 21 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Kota Bandung (bahasa Sunda: ᮊᮧᮒ ᮘᮔ᮪ᮓᮥᮀ; pelafalan dalam bahasa Indonesia: [ban.duŋ] dengarkanⓘcode: su is deprecated ) adalah sebuah kota sekaligus menjadi ibu kota provinsi di Provinsi Jawa Barat, Indonesia. Kota Bandung juga merupakan kota terbesar ketiga di Indonesia, setelah Jakarta[a] dan Kota Surabaya. Kota ini menjadi kota terpadat kedua di Indonesia setelah Jakarta[b] dengan kepadatan mencapai 15.051 jiwa/km2.</p><p>Terletak 141 km di sebelah tenggara Jakarta, 363 km di sebelah barat laut Kota Semarang, 400 km di sebelah barat Kota Yogyakarta, 675 km (lewat Kota Semarang) & 765 km (lewat Kota Yogyakarta) di sebelah barat Kota Surabaya. Kota Bandung merupakan kota terbesar di bagian selatan Pulau Jawa. Pada akhir tahun 2024, jumlah penduduk Kota Bandung sebanyak 2.591.763 orang. Kota Bandung merupakan kota terbesar di Provinsi Jawa Barat tanpa menyertakan kota penyangga[c].</p><p>Kota Bandung merupakan bagian dari Cekungan Bandung (Bandung Raya), kawasan metropolitan terbesar kedua di Indonesia setelah Jabodetabek. Kota Bandung berbatasan langsung dengan Kota Cimahi dan Kabupaten Bandung Barat di sisi barat dan utara, serta Kabupaten Bandung di sisi timur dan selatan.</p><p>Kota ini tercatat dalam berbagai sejarah penting yang pernah terjadi di Indonesia, salah satunya sebagai tempat berdirinya sebuah perguruan tinggi teknik pertama di Indonesia (Technische Hoogeschool te Bandoeng–TH Bandung, sekarang Institut Teknologi Bandung–ITB), lokasi ajang pertempuran pada masa kemerdekaan, serta pernah menjadi tempat berlangsungnya Konferensi Asia-Afrika 1955, suatu pertemuan yang menyuarakan semangat anti kolonialisme, bahkan Perdana Menteri India Jawaharlal Nehru dalam pidatonya mengatakan bahwa Bandung adalah ibu kotanya Asia-Afrika.</p><p>Pada tahun 1990, Kota Bandung terpilih sebagai salah satu kota paling aman di dunia berdasarkan survei majalah Time.</p><p>Kota Bandung dijuluki sebagai kota kembang, karena pada zaman dahulu kota ini dinilai sangat cantik dengan banyaknya pohon dan bunga-bunga yang tumbuh di sana. Namun, ada hipotesis yang menyebutkan bahwa julukan ini berasal dari istilah kembang dayang, yang merupakan sebutan untuk wanita penghibur pada masa kolonial. Selain itu, Kota Bandung dahulunya disebut juga dengan Paris van Java karena keindahannya yang mirip seperti Kota Paris di Prancis. Banyaknya mall dan factory outlet menjadikan Kota Bandung juga dikenal sebagai kota belanja, dan saat ini berangsur-angsur Kota Bandung juga menjadi kota wisata kuliner. Pada tahun 2007, konsorsium beberapa LSM internasional menjadikan Kota Bandung sebagai pilot project kota terkreatif se-Asia Timur. Saat ini Kota Bandung merupakan salah satu kota tujuan utama pariwisata dan pendidikan.</p><p>Kota Bandung dikelilingi oleh pegunungan, sehingga bentuk morfologi wilayahnya bagaikan sebuah mangkuk raksasa, secara geografis kota ini terletak di tengah-tengah provinsi Jawa Barat, serta berada pada ketinggian ±768 m di atas permukaan laut, dengan titik tertinggi berada di sebelah utara dengan ketinggian 1.050 meter  di atas permukaan laut dan sebelah selatan merupakan kawasan rendah dengan ketinggian 675 meter di atas permukaan laut.</p><p>Keadaan geologis dan tanah yang ada di kota Bandung dan sekitarnya terbentuk pada zaman kwartier dan mempunyai lapisan tanah alluvial hasil letusan Gunung Tangkuban Parahu. Jenis material di bagian utara umumnya merupakan jenis andosol begitu juga pada kawasan di bagian tengah dan barat, sedangkan kawasan di bagian selatan serta timur terdiri atas sebaran jenis alluvial kelabu dengan bahan endapan tanah liat.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">• Aksara Sunda</span><span class="infobox-value">ᮊᮧᮒ ᮘᮔ᮪ᮓᮥᮀ</span></div><div class="infobox-item"><span class="infobox-key">Negara</span><span class="infobox-value">Indonesia</span></div><div class="infobox-item"><span class="infobox-key">Provinsi</span><span class="infobox-value">Jawa Barat</span></div><div class="infobox-item"><span class="infobox-key">Tanggal berdiri</span><span class="infobox-value">September 25, 1810; 215 tahun lalu (1810-09-25)</span></div><div class="infobox-item"><span class="infobox-key">Jumlah satuan pemerintahan</span><span class="infobox-value">Daftar Kecamatan: 30Kelurahan: 151</span></div><div class="infobox-item"><span class="infobox-key">• Jenis</span><span class="infobox-value">Wali kota—dewan</span></div><p class="text-xs text-slate-500 mt-2">+ 7 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/8/80/Jembatan_layang_pasupati.jpeg/250px-Jembatan_layang_pasupati.jpeg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/9/97/Museum_konferensi_asia_afrika.jpeg/250px-Museum_konferensi_asia_afrika.jpeg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/6/61/Masjid_raya_al-jabar.jpg/250px-Masjid_raya_al-jabar.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 18 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/bandung" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/bandung</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="max-w-7xl mx-auto px-4 pb-8 text-center text-xs md:text-sm text-slate-500 border-t border-slate-800/50 pt-8">
+        <p>
+            📚 Total: 10 keyword • 
+            ✅ 10 sukses • 
+            ❌ 0 gagal
+        </p>
+        <p class="mt-1 opacity-50">Generated by Wikipedia Scraper • Tailwind CSS • Dark Mode</p>
+        <p class="mt-2 no-print text-xs text-slate-600">
+            💡 Untuk save as PDF: klik tombol Print di atas atau tekan Ctrl+P
+        </p>
+    </footer>
+
+    <script>
+        if ('IntersectionObserver' in window) {
+            const images = document.querySelectorAll('img[loading="lazy"]');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.loading = 'eager';
+                        observer.unobserve(img);
+                    }
+                });
+            });
+            images.forEach(img => observer.observe(img));
+        }
+
+        document.querySelectorAll('.fade-in').forEach((el, i) => {
+            el.style.animationDelay = (i * 0.1) + 's';
+        });
+
+        console.log('📖 Wikipedia Scraper - Multiple Results');
+        console.log('📊 Total: 10 keywords');
+        console.log('✅ Success: 10');
+        console.log('❌ Failed: 0');
+    </script>
+</body>
+</html>
