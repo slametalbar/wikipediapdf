@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Wikipedia Scraper - Multiple Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.4);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #34d399, #818cf8, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .image-card img {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .image-card:hover img {
+            transform: scale(1.03);
+        }
+        .content-text {
+            line-height: 1.9;
+            font-weight: 300;
+            color: #e2e8f0;
+        }
+        .content-text p {
+            margin-bottom: 1.2rem;
+        }
+        .infobox-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+            gap: 1rem;
+        }
+        .infobox-item:last-child {
+            border-bottom: none;
+        }
+        .infobox-key {
+            color: #94a3b8;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .infobox-value {
+            color: #f1f5f9;
+            text-align: right;
+            font-weight: 400;
+            word-break: break-word;
+        }
+        .bento-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 768px) {
+            .bento-grid {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #34d399;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6ee7b7;
+        }
+        .hover-glow:hover {
+            box-shadow: 0 0 30px rgba(52, 211, 153, 0.12);
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .status-badge {
+            padding: 2px 12px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .status-success {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+        }
+        .status-failed {
+            background: rgba(251, 113, 133, 0.2);
+            color: #fb7185;
+        }
+        .result-card {
+            transition: all 0.3s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4);
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: #34d399;
+            color: #0f172a;
+        }
+        .btn-primary:hover {
+            background: #6ee7b7;
+            transform: scale(1.02);
+        }
+        .btn-secondary {
+            background: rgba(71, 85, 105, 0.5);
+            color: #f1f5f9;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        .btn-secondary:hover {
+            background: rgba(71, 85, 105, 0.8);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .glass { background: #1e293b !important; backdrop-filter: none !important; }
+            body { background: #0f172a !important; }
+            .result-card { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-700/50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">📖</span>
+                    <span class="font-bold text-xl gradient-text">WikiScraper</span>
+                    <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">Multi</span>
+                </div>
+                <div class="flex items-center space-x-3 text-sm text-slate-400">
+                    <span class="hidden sm:inline text-xs">🕐 26 June 2026 09:34</span>
+                    <span class="text-xs">19/19 sukses</span>
+                    <button onclick="window.print()" class="btn btn-primary no-print text-xs">
+                        🖨️ PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="pt-24 pb-8 px-4 fade-in">
+        <div class="max-w-7xl mx-auto">
+            <div class="glass rounded-2xl p-6 md:p-10 hover-glow transition-all duration-300 border border-slate-700/50">
+                <h1 class="text-2xl md:text-4xl lg:text-5xl font-bold leading-tight">
+                    <span class="gradient-text">Multiple Results</span>
+                </h1>
+                <div class="flex flex-wrap items-center gap-3 mt-3 text-slate-400 text-xs md:text-sm">
+                    <span>📚 19 keyword</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                    <span class="text-emerald-400">✅ 19 sukses</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                    <span class="text-rose-400">❌ 0 gagal</span>
+                </div>
+                <div class="mt-4 flex gap-3 flex-wrap no-print">
+                    <button onclick="window.print()" class="btn btn-primary">
+                        🖨️ Print / Save as PDF
+                    </button>
+                    <button onclick="window.location.reload()" class="btn btn-secondary">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="px-4 pb-16 fade-in">
+        <div class="max-w-7xl mx-auto space-y-6">
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#1</span>
+                    <span class="text-xl font-bold gradient-text">Piala Dunia FIFA 2026</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">19 paragraf • 4 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Piala Dunia FIFA 2026 (bahasa Inggris: 2026 FIFA World Cupcode: en is deprecated , bahasa Spanyol: Copa Mundial de Fútbol de 2026code: es is deprecated , bahasa Prancis: Coupe du monde de football 2026code: fr is deprecated ) adalah edisi ke-23 Piala Dunia FIFA, turnamen sepak bola internasional empat tahunan yang diikuti oleh tim nasional senior pria anggota FIFA. Turnamen ini diselenggarakan pada 11 Juni hingga 19 Juli 2026; dan diselenggarakan bersama oleh 16 kota di tiga negara Amerika Utara: Amerika Serikat, Kanada, dan Meksiko. Turnamen ini menjadi edisi yang pertama diselenggarakan di tiga negara.</p><p>Untuk pertama kali dalam penyelenggaraan turnamen ini, edisi 2026 menjadi Piala Dunia FIFA dengan 48 tim peserta pada putaran final, dari semula 32 tim peserta pada edisi 1998 hingga 2022. Penawaran bersama 2026 mengalahkan penawaran Maroko selama pemungutan suara terakhir di Kongres FIFA ke-68 di Moskow. Ini akan menjadi Piala Dunia pertama sejak 2002 diselenggarakan oleh lebih dari satu negara. Dengan menjadi tuan rumah turnamen 1970 dan 1986, Meksiko akan menjadi negara pertama yang menjadi tuan rumah atau co-host Piala Dunia pria sebanyak tiga kali. Amerika Serikat terakhir menjadi tuan rumah Piala Dunia pada tahun 1994, dan ini akan menjadi pertama kalinya negara Kanada menjadi tuan rumah atau menjadi tuan rumah bersama turnamen putra. Jadwal pelaksaan turnamen ini akan kembali ke jadwal tradisional musim panas setelah edisi 2022 di Qatar yang diadakan pada bulan November dan Desember pada tahun tersebut. Turnamen ini juga akan berlangsung selama peringatan 250 tahun kemerdekaan Amerika Serikat.</p><p>Argentina adalah juara bertahan, setelah memenangkan gelar juara untuk ketiga kali pada 2022.</p><p>Michel Platini, yang saat itu menjabat sebagai Presiden UEFA, pernah mengusulkan penambahan jumlah peserta menjadi 40 tim pada Januari 2015, Presiden FIFA Gianni Infantino juga memberi usulan serupa pada Maret 2016. Keinginan untuk menambah jumlah peserta dalam turnamen yang sebelumnya 32 tim diumumkan pada 4 Oktober 2016. Empat pilihan penambahan yang dipertimbangkan adalah sebagai berikut:</p><p>Pada 10 Januari 2017, Dewan FIFA memutuskan penambahan peserta menjadi 48 tim.</p><p>Turnamen akan dibuka dengan babak grup yang terdiri dari 16 grup dengan tiap grup berisi 3 tim, yang mana 2 tim teratas dari tiap tim akan melaju ke babak gugur. Jumlah pertandingan yang dimainkan secara keseluruhan meningkat dari 64 menjadi 80, tetapi jumlah pertandingan yang dimainkan oleh finalis tetap 7, yang mana 1 pertandingan babak grup digantikan dengan pertandingan babak gugur. Turnamen juga akan selesai dalam 32 hari, sama seperti sebelumnya.</p><p>Proposal untuk menambah kontestan Piala Dunia ditentang oleh Asosiasi Klub Eropa, Presiden Liga Nacional de Fútbol Profesional (La Liga), Javier Tebas, dan mantan pelatih tim nasional Jerman Joachim Löw. Mereka berpendapat bahwa jumlah pertandingan yang dimainkan sudah pada tingkat yang tidak dapat diterima, dan memperluasnya akan melemahkan kualitas permainan yang dimainkan. Mereka juga berpendapat bahwa keputusan penambahan diambil karena alasan politik, karena Infantino telah menjanjikan lebih banyak negara yang akan bermain di Piala Dunia untuk memenangkan pemilihannya.</p><p>Selain itu, sebuah artikel di Journal of Sports Analytics berpendapat bahwa penggunaan babak grup tiga tim dengan dua tim maju secara signifikan meningkatkan risiko kolusi antar tim, seperti yang terlihat pada pertandingan grup Piala Dunia sebelumnya, terutama pada Disgrace of Gijón 1982. Sebagai tanggapan, kepala teknis FIFA Marco van Basten menyarankan agar pengundian dapat dicegah selama penyisihan grup dengan menggunakan adu penalti; sementara ini sebagian (walaupun tidak seluruhnya) akan mengurangi peningkatan risiko kolusi, itu akan memperkenalkan kemungkinan tim yang memutuskan untuk menyingkirkan lawan dengan sengaja kalah dalam adu penalti. Mengatasi kekhawatiran terkait kolusi, wakil presiden FIFA dan presiden CONCACAF Victor Montagliani berkomentar pada April 2022 bahwa FIFA masih mempertimbangkan dua belas grup empat tim atau dua set enam grup 4 tim, yang keduanya akan menghilangkan kolusi seluruhnya.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 11 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Tuan rumah</span><span class="infobox-value">Amerika SerikatKanadaMeksiko</span></div><div class="infobox-item"><span class="infobox-key">Jadwalpenyelenggaraan</span><span class="infobox-value">11 Juni – 19 Juli</span></div><div class="infobox-item"><span class="infobox-key">Jumlahtim peserta</span><span class="infobox-value">48 (dari 6 konfederasi)</span></div><div class="infobox-item"><span class="infobox-key">Tempatpenyelenggaraan</span><span class="infobox-value">16 (di 16 kota)</span></div><div class="infobox-item"><span class="infobox-key">Jumlahpertandingan</span><span class="infobox-value">58</span></div><div class="infobox-item"><span class="infobox-key">Jumlah gol</span><span class="infobox-value">172 (2,97 per pertandingan)</span></div><p class="text-xs text-slate-500 mt-2">+ 2 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/250px-2026_FIFA_World_Cup_emblem.svg.png" alt="Emblem of the 2026 FIFA World Cup, showing numbers..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Emblem of the 2026 FIFA World Cup, showing numbers...</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/250px-2026_FIFA_World_Cup_emblem.svg.png" alt="Emblem of the 2026 FIFA World Cup, showing numbers..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Emblem of the 2026 FIFA World Cup, showing numbers...</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/2026_world_cup_bid_election.png/500px-2026_world_cup_bid_election.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 1 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/2026_FIFA_World_Cup" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/2026_FIFA_World_Cup</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#2</span>
+                    <span class="text-xl font-bold gradient-text">Olimpiade Musim Dingin 2026</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">3 paragraf • 1 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Olimpiade Musim Dingin 2026, secara resmi disebut Pertandingan Olimpiade Musim Dingin XXV (bahasa Italia: Olimpiadi invernali del 2026code: it is deprecated ) dan umumnya dikenal sebagai Milano Cortina 2026, adalah acara multi-olahraga internasional yang saat ini berlangsung dari tanggal 6 hingga 22 Februari 2026 di berbagai lokasi di Lombardia dan Italia Timur Laut, dengan kompetisi di beberapa cabang olahraga terpilih dimulai pada tanggal 4 Februari 2026. Olimpiade 2026 dijadwalkan untuk menampilkan debut ski panjat gunung sebagai cabang olahraga Olimpiade Musim Dingin, dan merupakan Olimpiade pertama di bawah kepresidenan IOC Kirsty Coventry.</p><p>Proposal bersama dari Milan dan Cortina d'Ampezzo memenangkan hak penyelenggaraan Olimpiade Musim Dingin 2026 pada Sesi IOC ke-134 pada Juni 2019, mengalahkan proposal bersama lainnya yang diajukan oleh Stockholm dan Åre, Swedia. Milano Cortina 2026 adalah Olimpiade pertama yang secara resmi diselenggarakan bersama oleh dua kota. Milan terutama menjadi tuan rumah acara-acara es, sementara acara-acara lainnya diselenggarakan di beberapa kota di sekitar Cortina, Livigno, dan Fiemme. Ini menandai Olimpiade Musim Dingin ketiga, dan Olimpiade keempat secara keseluruhan, yang diselenggarakan oleh Italia; Cortina d'Ampezzo sebelumnya menjadi tuan rumah Olimpiade Musim Dingin 1956.</p><p>Artikel bertopik Olimpiade ini adalah sebuah rintisan. Anda dapat membantu Wikipedia dengan mengembangkannya.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Tuan rumah</span><span class="infobox-value">Milan dan Cortina d'Ampezzo, Italia</span></div><div class="infobox-item"><span class="infobox-key">Moto</span><span class="infobox-value">IT's Your Vibe</span></div><div class="infobox-item"><span class="infobox-key">Jumlah negara</span><span class="infobox-value">92</span></div><div class="infobox-item"><span class="infobox-key">Jumlah atlet</span><span class="infobox-value">2.871 (1.533 pria, 1.338 wanita)</span></div><div class="infobox-item"><span class="infobox-key">Jumlah disiplin</span><span class="infobox-value">116 dalam 8 cabang olahraga (16 disiplin)</span></div><div class="infobox-item"><span class="infobox-key">Pembukaan</span><span class="infobox-value">6 Februari 2026</span></div><p class="text-xs text-slate-500 mt-2">+ 6 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="%231e293b"/%3E%3Ctext x="200" y="150" font-family="sans-serif" font-size="24" fill="%2364748b" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E" alt="Tidak ada gambar ditemukan" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Tidak ada gambar ditemukan</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/2026_Winter_Olympics" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/2026_Winter_Olympics</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#3</span>
+                    <span class="text-xl font-bold gradient-text">Deaths in 2026</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">1 paragraf • 1 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>The following notable deaths occurred in 2026. Names are reported under the date of death, in alphabetical order. A typical entry reports information in the following sequence:</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="%231e293b"/%3E%3Ctext x="200" y="150" font-family="sans-serif" font-size="24" fill="%2364748b" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E" alt="Tidak ada gambar ditemukan" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Tidak ada gambar ditemukan</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://en.wikipedia.org/wiki/Deaths_in_2026" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://en.wikipedia.org/wiki/Deaths_in_2026</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#4</span>
+                    <span class="text-xl font-bold gradient-text">98th Academy Awards</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">3 paragraf • 15 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>The 98th Academy Awards ceremony, presented by the Academy of Motion Picture Arts and Sciences (AMPAS), took place on March 15, 2026, at the Dolby Theatre in Hollywood, Los Angeles. During the gala, the AMPAS presented the Academy Awards (commonly referred to as the Oscars) in 24 categories, honoring films released in 2025. The ceremony was televised in the United States by ABC and streamed on Hulu. Comedian Conan O'Brien returned to host the show for the second consecutive time, after receiving acclaim for hosting the previous year, with Raj Kapoor and Katy Mullan returning as executive producers for the third consecutive year, and Hamish Hamilton returning as director.[a]</p><p>In related events, the Academy held its 16th Governors Awards ceremony at the Ray Dolby Ballroom of the Ovation Hollywood complex in Hollywood on November 16, 2025. The Academy Scientific and Technical Awards were presented by host Sofia Carson on April 28, 2026, in a ceremony at the Academy Museum of Motion Pictures in Los Angeles.</p><p>One Battle After Another won a leading six awards, including Best Picture and Best Casting, becoming the inaugural recipient for the latter category. Other winners included Sinners with four awards; Frankenstein with three; KPop Demon Hunters with two; and All the Empty Rooms, Avatar: Fire and Ash, F1, The Girl Who Cried Pearls, Hamnet, Mr Nobody Against Putin, Sentimental Value, The Singers, Two People Exchanging Saliva, and Weapons with one each. The telecast drew 17.86 million viewers in the United States.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Date</span><span class="infobox-value">March 15, 2026</span></div><div class="infobox-item"><span class="infobox-key">Site</span><span class="infobox-value">Dolby Theatre,Hollywood, Los Angeles, California, U.S.</span></div><div class="infobox-item"><span class="infobox-key">Hosted by</span><span class="infobox-value">Conan O'Brien</span></div><div class="infobox-item"><span class="infobox-key">Preshow hosts</span><span class="infobox-value">Tamron HallJesse Palmer</span></div><div class="infobox-item"><span class="infobox-key">Produced by</span><span class="infobox-value">Raj KapoorKaty Mullan</span></div><div class="infobox-item"><span class="infobox-key">Directed by</span><span class="infobox-value">Hamish Hamilton</span></div><p class="text-xs text-slate-500 mt-2">+ 6 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/6/6a/98th_Academy_Awards_poster.png" alt="Official poster for the 98th Academy Awards" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Official poster for the 98th Academy Awards</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/6/6a/98th_Academy_Awards_poster.png" alt="Official poster for the 98th Academy Awards" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Official poster for the 98th Academy Awards</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Paul_Thomas_Anderson_in_2025.jpg/250px-Paul_Thomas_Anderson_in_2025.jpg" alt="Paul Thomas Anderson in 2025." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Paul Thomas Anderson in 2025.</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 12 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://en.wikipedia.org/wiki/98th_Academy_Awards" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://en.wikipedia.org/wiki/98th_Academy_Awards</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#5</span>
+                    <span class="text-xl font-bold gradient-text">Eurovision Song Contest 2026</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">4 paragraf • 4 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>The Eurovision Song Contest 2026 was the 70th edition of the Eurovision Song Contest. It consisted of two semi-finals on 12 and 14 May and a final on 16 May 2026, held at Wiener Stadthalle in Vienna, Austria, and presented by Victoria Swarovski and Michael Ostrowski, with Emily Busvine [de] acting as the green room host. It was organised by the European Broadcasting Union (EBU) and host broadcaster Österreichischer Rundfunk (ORF), which staged the event after winning the 2025 contest for Austria with the song "Wasted Love" by JJ.</p><p>Broadcasters from thirty-five countries participated in the contest, two fewer than in 2025 and the smallest number of participants since 2003, before the introduction of semi-finals. Iceland, Ireland, the Netherlands, Slovenia, and Spain opted not to participate in protest at Israel's inclusion in the context of the Gaza war, marking the largest number of boycotting countries in the contest's history since 1970, while Bulgaria, Moldova, and Romania returned after absences from recent editions.</p><p>The winner was Bulgaria with the song "Bangaranga", performed by Dara and written by her with Anne Judith Wik, Cristian Tarcea, and Dimitris Kontopoulos. The song won both the jury vote and televote, the first entry to do so since Portugal in 2017, and gave Bulgaria its first win in the contest. Israel, Romania, Australia, and Italy rounded out the top five, with Romania equaling its best placements from 2005 and 2010 while achieving its highest points total to date. Luxembourg failed to qualify for the final for the first time, leaving Ukraine as the only country to have always progressed from the semi-finals since their introduction in 2004.[a]</p><p>The EBU reported that the contest had a television audience of 131 million viewers in 35 European markets, a decrease of 35 million viewers from the previous edition and the lowest viewing figures since the 2012 contest, which attracted 103 million viewers.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Semi-final 1</span><span class="infobox-value">12 May 2026</span></div><div class="infobox-item"><span class="infobox-key">Semi-final 2</span><span class="infobox-value">14 May 2026</span></div><div class="infobox-item"><span class="infobox-key">Final</span><span class="infobox-value">16 May 2026</span></div><div class="infobox-item"><span class="infobox-key">Venue</span><span class="infobox-value">Wiener StadthalleVienna, Austria</span></div><div class="infobox-item"><span class="infobox-key">Organiser</span><span class="infobox-value">European Broadcasting Union (EBU)</span></div><div class="infobox-item"><span class="infobox-key">ESC director</span><span class="infobox-value">Martin Green</span></div><p class="text-xs text-slate-500 mt-2">+ 10 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/ESC_2026_Map.svg/330px-ESC_2026_Map.svg.png" alt="A coloured map of the countries of Europe}}}" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">A coloured map of the countries of Europe}}}</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/ESC_2026_Map.svg/330px-ESC_2026_Map.svg.png" alt="A coloured map of the countries of Europe}}}" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">A coloured map of the countries of Europe}}}</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Wiener_Stadthalle_before_Eurovision_2026_%E2%80%93_BT0A9061_%28cropped%29.jpg/250px-Wiener_Stadthalle_before_Eurovision_2026_%E2%80%93_BT0A9061_%28cropped%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 1 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://en.wikipedia.org/wiki/Eurovision_Song_Contest_2026" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://en.wikipedia.org/wiki/Eurovision_Song_Contest_2026</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#6</span>
+                    <span class="text-xl font-bold gradient-text">Michael (2026 film)</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">4 paragraf • 6 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Michael is a 2026 biographical film directed by Antoine Fuqua and written by John Logan. It follows the early life of American singer Michael Jackson, covering the period from his involvement in the Jackson 5 in the 1960s to the Bad World Tour in the late 1980s. Jackson is portrayed by his nephew Jaafar Jackson and as a child by Juliano Valdi, both in their film debuts. The supporting cast includes Nia Long, KeiLyn Durrel Jones, Laura Harrier, Jessica Sula, Mike Myers, Miles Teller, and Colman Domingo.</p><p>Development began in November 2019, when it was reported that the producer Graham King had secured the rights to produce a film about Jackson, with Logan attached to write. Lionsgate announced the film in February 2022. In January 2023, Fuqua was announced as the director, and Jaafar was cast as Michael. Further casting took place from January to April 2024.</p><p>After delays caused by the 2023 SAG-AFTRA strike, principal photography took place between January and May 2024. After a clause was discovered in a legal settlement, references to the 1993 child sexual abuse allegations against Michael were removed, the third act was revised, and reshoots took place in June 2025, bringing the total production budget to $155–200 million.</p><p>Michael premiered at the Uber Eats Music Hall in Berlin on April 10, 2026, and was released on April 22 in the United Kingdom by Universal Pictures and on April 24 in the United States by Lionsgate. It received generally negative reviews from critics, who praised Jaafar's performance but criticized the story as "sanitized". It has grossed $942.3 million worldwide, making it the highest-grossing Lionsgate film, the second-highest-grossing film of 2026, the second-highest-grossing biographical film and the highest-grossing music biopic of all time. A sequel is in development.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Directed by</span><span class="infobox-value">Antoine Fuqua</span></div><div class="infobox-item"><span class="infobox-key">Written by</span><span class="infobox-value">John Logan</span></div><div class="infobox-item"><span class="infobox-key">Produced by</span><span class="infobox-value">Graham King John Branca John McClain</span></div><div class="infobox-item"><span class="infobox-key">Starring</span><span class="infobox-value">Jaafar Jackson Nia Long Juliano Valdi KeiLyn Durrel Jones Laura Harrier Jessica Sula Mike Myers Miles Teller Colman Domingo</span></div><div class="infobox-item"><span class="infobox-key">Cinematography</span><span class="infobox-value">Dion Beebe</span></div><div class="infobox-item"><span class="infobox-key">Edited by</span><span class="infobox-value">John Ottman Harry Yoon Conrad Buff IV Tom Cross</span></div><p class="text-xs text-slate-500 mt-2">+ 8 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/3/37/Michael_%282026_film_poster%29.png/250px-Michael_%282026_film_poster%29.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/3/37/Michael_%282026_film_poster%29.png/250px-Michael_%282026_film_poster%29.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Michael_Jackson_with_Grammy_Awards_in_1984_%28cropped%29.jpg/250px-Michael_Jackson_with_Grammy_Awards_in_1984_%28cropped%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 3 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://en.wikipedia.org/wiki/Michael_%282026_film%29" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://en.wikipedia.org/wiki/Michael_%282026_film%29</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#7</span>
+                    <span class="text-xl font-bold gradient-text">Stranger Things season 5</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">2 paragraf • 3 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>The fifth and final season of the American science fiction horror drama television series Stranger Things, marketed as Stranger Things 5, was released on the streaming service Netflix in two volumes and the finale. The first set of four episodes was released on November 26, 2025, the second set of three episodes was released on December 25, and the finale was released on December 31. The season was produced by the show's creators, the Duffer Brothers, along with Shawn Levy and Dan Cohen.</p><p>The season stars Winona Ryder, David Harbour, Millie Bobby Brown, Finn Wolfhard, Gaten Matarazzo, Caleb McLaughlin, Noah Schnapp, Sadie Sink, Natalia Dyer, Charlie Heaton, Joe Keery, Maya Hawke, Brett Gelman, Priah Ferguson, Linda Hamilton, Cara Buono, Jamie Campbell Bower, and Nell Fisher. Joe Chrest, Sherman Augustus, Alex Breaux, Jake Connelly, Amybeth McNulty, Randy Havens, and Linnea Berthelsen appear in recurring roles. The season received mixed reviews from critics, who praised the scale and emotional payoff, though the writing and certain narrative decisions drew criticism.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Showrunners</span><span class="infobox-value">Matt Duffer Ross Duffer</span></div><div class="infobox-item"><span class="infobox-key">Starring</span><span class="infobox-value">Winona Ryder David Harbour Millie Bobby Brown Finn Wolfhard Gaten Matarazzo Caleb McLaughlin Noah Schnapp Sadie Sink Natalia Dyer Charlie Heaton Joe Keery Maya Hawke Brett Gelman Priah Ferguson Linda </span></div><div class="infobox-item"><span class="infobox-key">No. of episodes</span><span class="infobox-value">8</span></div><div class="infobox-item"><span class="infobox-key">Original network</span><span class="infobox-value">Netflix</span></div><div class="infobox-item"><span class="infobox-key">Original release</span><span class="infobox-value">November 26 (2025-11-26) –December 31, 2025 (2025-12-31)</span></div></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/b/be/Stranger_Things_season_5.jpeg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/b/be/Stranger_Things_season_5.jpeg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Nell_Fisher.png/250px-Nell_Fisher.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://en.wikipedia.org/wiki/Stranger_Things_season_5" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://en.wikipedia.org/wiki/Stranger_Things_season_5</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#8</span>
+                    <span class="text-xl font-bold gradient-text">Dhurandhar</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">18 paragraf • 2 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Dhurandhar adalah film laga triler mata-mata India tahun 2025 yang ditulis, diproduksi bersama, dan disutradarai oleh Aditya Dhar. Film ini diproduksi oleh Jyoti Deshpande, Aditya Dhar, dan Lokesh Dhar di bawah naungan Jio Studios dan B62 Studios. Deretan pemerannya terdiri dari multipel pemeran utama mencakup Ranveer Singh, Akshaye Khanna, Sanjay Dutt, Arjun Rampal, dan R. Madhavan, bersama sejumlah aktor pendukung. Sebagai bagian pertama dari sebuah dwilogi, film ini berfokus pada operasi kontra-terorisme rahasia dengan risiko tinggi. Ceritanya mengikuti seorang agen intelijen India yang menyamar dan menyusup ke jaringan kriminal serta struktur politik di Karachi, Pakistan, dalam upaya membongkar jaringan teror yang menargetkan India.</p><p>Alur cerita film ini mengambil inspirasi longgar dari sejumlah peristiwa geopolitik nyata dan konflik di Asia Selatan, termasuk pembajakan IC-814 pada tahun 1999, serangan terhadap Parlemen India tahun 2001, serangan Mumbai 2008, serta perkembangan yang berkaitan dengan Operasi Lyari di Pakistan. Pengambilan gambar utama untuk Dhurandhar berlangsung antara Juli 2024 hingga Oktober 2025 di berbagai lokasi, baik di India maupun luar negeri, mencakup negara bagian dan wilayah persatuan Punjab, Maharashtra, Chandigarh, Ladakh dan Himachal Pradesh, serta Thailand. Dengan durasi 214 menit, Dhurandhar termasuk salah satu film India terpanjang yang pernah diproduksi.</p><p>Dhurandhar dirilis di bioskop pada 5 Desember 2025 dan memperoleh ulasan beragam dari para kritikus. Film ini dipuji atas penampilan para pemerannya, arahan sutradara, sinematografi, adegan aksi, musik latar, serta rancangan produksinya. Namun, sejumlah kritik diarahkan pada durasi yang panjang dan tempo penceritaan. Film ini juga menimbulkan kontroversi karena pencampuran unsur fiksi dengan peristiwa sejarah nyata, dengan sebagian pengamat menyebutnya bersifat propagandis. Secara komersial, Dhurandhar meraih kesuksesan besar, dengan pendapatan lebih dari ₹1.000 crore di seluruh dunia hanya dalam tiga minggu sejak perilisan, sekaligus memecahkan berbagai rekor, termasuk menjadi film Hindi dengan pendapatan tertinggi di India dan film Hindi dengan pendapatan tertinggi kedua di dunia pada saat itu. Sekuel berjudul Dhurandhar: The Revenge tayang di bioskop pada 19 Maret 2026.</p><p>Film ini dilarang tayang di sejumlah negara anggota Gulf Cooperation Council. Meskipun Pakistan telah melarang film India sejak 2019, Dhurandhar dilaporkan diunduh secara ilegal sekitar dua juta kali di negara tersebut.</p><p>Pada 30 Desember 1999, Menteri Luar Negeri Devavrat Kapoor bersama Direktur Biro Intelijen Ajay Sanyal bernegosiasi dengan teroris Zahoor Mistry. Mereka diminta membebaskan tiga teroris—termasuk saudara Mistry sendiri—serta membayar tebusan 10 juta dolar AS demi keselamatan penumpang pesawat yang disandera di Kandahar. Usulan Sanyal untuk menyusup ke jaringan teroris di Pakistan sempat ditolak oleh Sekretaris Khusus R&AW, K. S. Bhullar. Namun setelah serangan terhadap Parlemen India tahun 2001, Kapoor akhirnya memberi lampu hijau bagi operasi rahasia Sanyal yang diberi nama “Operasi Dhurandhar”.</p><p>Sanyal kemudian mengirim agen Hamza Ali Mazari menyeberang ke Pakistan lewat perbatasan Torkham di Afghanistan. Di kawasan Lyari, Karachi, Hamza berteman dengan Mohammed Aalam, pemilik sebuah warung jus. Ia tinggal bersama Aalam, bekerja sebagai pelayan, sambil mempelajari situasi politik geng lokal setempat. Sebagai orang Baloch, Hamza hanya bisa bergabung dengan kelompok geng yang dipimpin oleh Rehman Dakait dan sepupunya, Uzair Baloch.</p><p>Hamza mengetahui bahwa geng Pathan pimpinan Babu Dakait—ayah Rehman yang sudah lama berseteru dengannya—berencana membunuh putra sulung Rehman, Naieem Baloch. Serangan terjadi saat pesta pernikahan yang dihadiri Naieem dan adiknya, Faizal. Hamza berhasil menyelamatkan Faizal, tetapi Naieem tewas. Di rumah sakit, Rehman dan Uzair melihat kemampuan menggunakan senjata api Hamza dan langsung merekrutnya. Meski politisi Jameel Jamali dari Pakistan Awami Party (PAP) meminta agar tidak ada balas dendam sebelum pemilu Lyari, Hamza justru mendorong Rehman untuk melakukan aksi balasan. Geng Rehman pun membantai kelompok Babu, dan Rehman sendiri menghabisi ayahnya dengan batu timbangan, menegaskan dominasi Baloch di Lyari.</p><p>Dalam sebuah kampanye PAP pada tahun 2007, Hamza bertemu Yalina, putri Jameel, dan menjalin hubungan dengannya. Sementara itu, Rehman dikenalkan kepada Mayor Iqbal dari ISI oleh keluarga Khanani, pengusaha yang mendorongnya masuk politik. Iqbal meminta pasokan senjata dan amunisi kepada Rehman. Hamza mengetahui operasi uang palsu yang dijalankan Iqbal dan menyaksikan sendiri ia menyiksa seorang mata-mata India. Informasi itu diteruskan kepada Aalam, lalu sampai ke Sanyal. IB pun mencurigai Pakistan memiliki pelat mata uang India. Saat mengangkut senjata, Hamza menemukan rencana serangan besar terhadap India dan segera memberi peringatan. Aliansi Rehman dengan keluarga Khanani membuat posisi Jameel terpinggirkan. Dengan dukungan Mayor Iqbal, Rehman masuk politik dan mendeklarasikan aliansi antara partainya, People’s Aman Committee, dengan PAP pimpinan Aquib Ali Zarwari. Jameel lalu merekrut mantan Inspektur Polisi Chaudhary Aslam untuk menyingkirkan Rehman, membentuk Lyari Task Force (LTF). Aslam berhasil menangkap Rehman saat pengiriman senjata. Hamza melawan balik dengan mengirim video rekaman Yalina yang membongkar kolusi Jameel dengan Aslam dan gangster Arshad Pappu. Ketika Aslam menolak membebaskan Rehman, Hamza mengancamnya akan menyebarkan secara langsung penyiksaan terhadap anggota LTF yang ditangkap.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 10 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Sutradara</span><span class="infobox-value">Aditya Dhar</span></div><div class="infobox-item"><span class="infobox-key">Produser</span><span class="infobox-value">Aditya DharLokesh DharJyoti Deshpande</span></div><div class="infobox-item"><span class="infobox-key">Ditulis oleh</span><span class="infobox-value">Aditya Dhar</span></div><div class="infobox-item"><span class="infobox-key">Additional Screenplay</span><span class="infobox-value">Shivkumar V. PanickerOjas Gautam</span></div><div class="infobox-item"><span class="infobox-key">Pemeran</span><span class="infobox-value">Ranveer Singh Akshaye Khanna Sanjay Dutt Arjun Rampal R. Madhavan Danish Pandor Sara Arjun Rakesh Bedi</span></div><div class="infobox-item"><span class="infobox-key">Penata musik</span><span class="infobox-value">Shashwat Sachdev</span></div><p class="text-xs text-slate-500 mt-2">+ 10 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/c/ce/Dhurandhar_poster.jpg/250px-Dhurandhar_poster.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/c/ce/Dhurandhar_poster.jpg/250px-Dhurandhar_poster.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Dhurandhar" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Dhurandhar</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#9</span>
+                    <span class="text-xl font-bold gradient-text">Avatar: Fire and Ash</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">19 paragraf • 7 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Avatar: Fire and Ash adalah film fiksi ilmiah epik Amerika tahun 2025 yang disutradarai oleh James Cameron dari skenario yang ia tulis bersama Rick Jaffa dan Amanda Silver. Diproduksi oleh Lightstorm Entertainment, ini adalah bagian ketiga dari seri film Avatar dan sekuel dari Avatar: The Way of Water (2022). Film ini menampilkan kembali Sam Worthington, Zoe Saldaña, Sigourney Weaver, Stephen Lang, dan Kate Winslet yang memerankan peran mereka dari film-film sebelumnya. Kisahnya mengikuti Jake Sully, manusia yang berubah menjadi Na'vi, dan keluarganya di bulan yang dapat dihuni Pandora, saat mereka menghadapi ancaman gabungan dari pasukan RDA manusia dan Mangkwan, sebuah suku Na'vi yang kejam dan gemar berperang.</p><p>Pada awal 2010, Cameron mengumumkan dua sekuel dari Avatar (2009) yang sangat sukses, dengan Avatar 3 ditargetkan tayang pada Desember 2015. Namun, pembuatan dua sekuel yang menggunakan pengembangan teknologi performance capture baru untuk pengambilan gambar bawah air menyebabkan penundaan besar, agar kru memiliki lebih banyak waktu untuk proses penulisan, pra-produksi, dan pembuatan efek visual. Pengambilan gambar dimulai bersamaan dengan The Way of Water di Selandia Baru pada 25 September 2017 dan selesai pada akhir Desember 2020. Dengan perkiraan anggaran produksi setidaknya 350 juta dolar AS, menjadikan film ini sebagai salah satu film termahal yang pernah dibuat.</p><p>Avatar: Fire and Ash diputar secara perdana di Dolby Theatre, Hollywood pada 1 Desember 2025, dan ditayangkan di bioskop Amerika Serikat pada 19 Desember oleh 20th Century Studios. Tanggapan kritikus cukup beragam, dari positif hingga yang mengkritisi: visual yang spektakuler umumnya mendapat pujian, tetapi alur cerita dinilai terlalu mengulang pola film sebelumnya dan durasinya yang terlalu panjang. Film ini sukses secara komersial dengan pendapatan 1,488 miliar dolar AS, menjadikannya film dengan pendapatan tertinggi ketiga tahun 2025, meski menjadi yang terendah di antara seri Avatar. Film ini meraih Academy Award untuk Efek Visual Terbaik pada Academy Awards ke-98 dan juga dinominasikan untuk Academy Award untuk Desain Kostum Terbaik. Selain itu, film ini memperoleh dua nominasi di Golden Globe Award ke-83, serta dinobatkan sebagai salah satu dari sepuluh film terbaik tahun 2025 oleh American Film Institute dan National Board of Review. Dua sekuel berikutnya, Avatar 4 dan Avatar 5, dijadwalkan tayang masing-masing pada 2029 dan 2031, meski kelanjutannya bergantung pada pencapaian box office Fire and Ash.</p><p>Tak lama setelah kematian putra sulung Jake dan Neytiri, Neteyam,[c] keluarga Sully yang tinggal bersama klan Metkayina masih diliputi duka, sementara rasa benci terhadap manusia terus tumbuh di benak Neytiri. Setelah masker pernapasan Spider kehabisan daya saat ia tidur, Jake dan Neytiri memutuskan untuk mengembalikannya ke High Camp yang memiliki fasilitas lebih memadai bagi manusia. Karena seluruh anak Sully menolak berpisah, Jake akhirnya memutuskan untuk mengantar Spider bersama seluruh anggota keluarga dengan menumpang armada kapal dagang terbang yang sedang berkunjung.</p><p>Dalam perjalanan, konvoi dagang tersebut disergap oleh Mangkwan, sebuah klan Na'vi perompak yang beranggotakan kaum Ash. Dipimpin oleh matriark mereka, Varang, Mangkwan menjarah dan membakar kapal-kapal itu, menewaskan banyak orang serta memisahkan keluarga Sully di daratan. Setelah Miles Quaritch berhasil menangkap Jake, keduanya sepakat bekerja sama untuk menemukan Spider. Sementara itu, Spider jatuh pingsan ketika maskernya kehabisan daya, mendorong Kiri (putri angkat Jake) untuk secara spontan menyatukan tubuhnya dengan miselia, yang memberinya kemampuan bernapas di udara Pandora. Baru saja larut dalam kegembiraan, kelompok Mangkwan menemukan lokasi mereka dan langsung menawan mereka. Jake dan Quaritch tiba dan sempat menguasai keadaan, sebelum Varang menaklukkan Quaritch dengan menempelkan kuru-nya ke kuru milik Quaritch. Setelah Varang meminta Quaritch untuk mengajarinya menggunakan senjata api, Mangkwan mengikat Quaritch dan keluarga Sully serta kemudian merayakan kemenangan mereka di sekitar api unggun. Kiri diam-diam memerintahkan flora untuk menyerang para penjaga sehingga mereka bisa melarikan diri. Neytiri dan beberapa anggota Omatikaya menemukan mereka dan membawa mereka ke High Camp.</p><p>Di High Camp, ilmuwan Norm Spellman dan Max Patel memeriksa Spider dan menemukan organisme dalam tubuhnya yang berpotensi dipelajari manusia dengan rekayasa balik untuk menciptakan teknologi yang memungkinkan manusia bernapas di Pandora. Spider juga mulai menumbuhkan kuru di belakang kepalanya, sehingga ia dapat terhubung dengan fauna Pandora seperti Na’vi. Kiri sekali lagi menghubungkan kuru-nya ke Pohon Jiwa, tapi terdorong oleh Eywa. Jake, Neytiri dan Mo'at kemudian mengungkap bahwa Kiri tidak mempunyai ayah dan sebagian dirinya berasal dari Eywa. Di tempat lain, RDA berburu Tulkun untuk mendapatkan amrita, cairan neurokrin kekuningan yang dihasilkan di kelenjar di dasar otak mereka, yang menyebabkan kepunahan salah satu klan Tulkun. Sementara itu, di Awa’atlu (kampung halaman Metkayina), para tetua Tulkun memutuskan untuk mengusir Payakan karena telah melanggar prinsip bangsa Tulkun yang mengutamakan kedamaian.[d] Pengusiran tersebut juga memicu ketegangan antara Jake dan Lo'ak (putra kedua Jake) yang berusaha membela Payakan. Lo'ak yang merasa bersalah setelah disalahkan atas kematian kakaknya, sempat berniat bunuh diri, tapi mengurungkan niatnya dan memutuskan untuk menyusul Payakan. Di sisi lain, Quaritch datang ke markas klan Mangkwan dengan membawa persenjataan untuk menjalin aliansi dengan Varang.</p><p>Kiri membantu Spider menjelajahi kemampuan barunya bersama satwa liar, hingga berpetualang ke dalam hutan. Di sana, keduanya berciuman. Namun, saat hendak kembali, mereka disergap oleh kaum Mangkwan. Spider ditangkap dan dibawa oleh Quaritch. Ia kemudian menyerbu desa Metkayina bersama Mangkwan, menuntut Jake untuk menyerahkan diri. Demi mencegah perang, Jake menyerahkan diri dan dibawa ke markas RDA, Bridgehead City. Spider menjalani berbagai uji coba yang dilakukan para ilmuwan RDA, sementara Jake dijadwalkan untuk dieksekusi. RDA juga membuat rencana serangan besar-besaran untuk menangkap semua tulkun yang ada di Laut Timur pada saat Calf Communion, sebuah upacara tahunan yang dilakukan oleh klan Metkayina dan para tulkun. Ahli biologi RDA, Ian Garvin, menentang perburuan itu, tetapi diabaikan oleh Jenderal Ardmore. Sementara itu, Lo’ak yang mencari Payakan diserang cumi-cumi raksasa, tetapi diselamatkan oleh beberapa Tulkun dan anak-anak Tonowari. Lo'ak akhirnya menemukan Payakan dan menyadari kenyataan tragis bahwa klan lahir Payakan telah punah dan hanya menyisakan satu ekor Tulkun bernama Ta'nok.</p><p>Neytiri mencoba membebaskan Jake dengan menyusup ke dalam markas RDA, sementara Spider berhasil melarikan diri dari laboratorium dengan memanfaatkan kalung Quaritch untuk membuka akses ke gorong-gorong. Ian secara diam-diam mencuri buldoser untuk membebaskan Jake. Ketika Jake mulai terdesak, Spider menjadi tameng manusia yang membuat RDA ragu-ragu menembaknya. Kesempatan tersebut dimanfaatkan oleh Neytiri, Jake dan Spider untuk melarikan diri. Jake sempat meminta Neytiri untuk berhenti di suatu tempat dan berniat membunuh Spider demi mencegah manusia memanfaatkannya untuk menciptakan teknologi yang bisa membuat manusia bisa bernafas di alam bebas Pandora. Namun, pada detik-detik terakhir, Jake mengurungkan niatnya. Neytiri yang selama ini tidak terlalu menyukai Spider mulai menyesal dan akhirnya menerima Spider sebagai bagian keluarga. Sadar tidak memiliki alternatif lain, Jake kembali mengunjungi Toruk Makto serta memanggil semua clan Na’vi untuk bersatu melawan operasi pembantaian yang akan berlangsung. Di Awa’atlu, dewan Tulkun mendengar peringatan Jake tentang pembantaian yang akan datang, tetapi mereka masih tetap berpegang pada prinsip mereka yang menghindari perang. Lo’ak kemudian muncul bersama Payakan dan menghadirkan Tan’ok, satu-satunya penyintas dari clan lahir Payakan. Badannya yang dipenuhi luka menjadi bukti kekejaman para manusia terhadap kaum tulkun, sehingga para tetua Tulkun meminta waktu untuk mempertimbangkan kembali keputusan mereka.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 11 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Sutradara</span><span class="infobox-value">James Cameron</span></div><div class="infobox-item"><span class="infobox-key">Produser</span><span class="infobox-value">James Cameron Jon Landau</span></div><div class="infobox-item"><span class="infobox-key">Skenario</span><span class="infobox-value">James Cameron Rick JaffaAmanda Silver</span></div><div class="infobox-item"><span class="infobox-key">Cerita</span><span class="infobox-value">James Cameron Rick Jaffa Amanda Silver Josh Friedman Shane Salerno</span></div><div class="infobox-item"><span class="infobox-key">Pemeran</span><span class="infobox-value">Sam Worthington Zoe Saldaña Sigourney Weaver Stephen Lang Kate Winslet</span></div><div class="infobox-item"><span class="infobox-key">Penata musik</span><span class="infobox-value">Simon Franglen[a]</span></div><p class="text-xs text-slate-500 mt-2">+ 10 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/9/95/Avatar_Fire_and_Ash_poster.jpeg/250px-Avatar_Fire_and_Ash_poster.jpeg" alt="Poster film yang menampilkan para karakter film, t..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Poster film yang menampilkan para karakter film, t...</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/id/thumb/9/95/Avatar_Fire_and_Ash_poster.jpeg/250px-Avatar_Fire_and_Ash_poster.jpeg" alt="Poster film yang menampilkan para karakter film, t..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Poster film yang menampilkan para karakter film, t...</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Avatar_The_Way_of_Water_Tokyo_Press_Conference_Sam_Worthington_%2852563252594%29_%28cropped%29.jpg/250px-Avatar_The_Way_of_Water_Tokyo_Press_Conference_Sam_Worthington_%2852563252594%29_%28cropped%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 4 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Avatar%3A_Fire_and_Ash" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Avatar%3A_Fire_and_Ash</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#10</span>
+                    <span class="text-xl font-bold gradient-text">Iron Lung (film)</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">3 paragraf • 3 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Iron Lung is a 2026 American independent science fiction horror film starring writer, editor, and director Mark Fischbach (better known by his online alias Markiplier), in his feature-length directorial debut. It is based on the 2022 video game by David Szymanski. It also stars Caroline Kaplan, Troy Baker, Elsie Lovelock, Elle LaMont, Mick Lauer, Seán McLoughlin (Jacksepticeye), Isaac McKee and Alanah Pearce. The plot follows a convict (Markiplier) who is forced to pilot a submarine through an ocean of blood on a desolate moon following an apocalyptic event known as the "Quiet Rapture" that caused all the stars and habitable planets along with their human inhabitants to disappear without warning.</p><p>Development on an Iron Lung film adaptation began in April 2023, when Markiplier announced he would be adapting the game into film. Markiplier, who had previously played Iron Lung on his YouTube channel, stated it would be self-written, self-financed, and star himself alongside Kaplan. Szymanski had been involved with it since pre-production, assisting with its story and being on set during filming.</p><p>Iron Lung was self-released by Markiplier in North America on January 30, 2026. The film received mixed reviews from critics, but was a box-office success, grossing $51 million worldwide.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Directed by</span><span class="infobox-value">Mark "Markiplier" Fischbach</span></div><div class="infobox-item"><span class="infobox-key">Written by</span><span class="infobox-value">Mark "Markiplier" Fischbach</span></div><div class="infobox-item"><span class="infobox-key">Based on</span><span class="infobox-value">Iron Lungby David Szymanski</span></div><div class="infobox-item"><span class="infobox-key">Produced by</span><span class="infobox-value">Will Hyde Jeff Guerrero</span></div><div class="infobox-item"><span class="infobox-key">Starring</span><span class="infobox-value">Mark "Markiplier" Fischbach Caroline Kaplan Troy Baker Elsie Lovelock Elle LaMont Mick Lauer Seán McLoughlin Isaac McKee</span></div><div class="infobox-item"><span class="infobox-key">Cinematography</span><span class="infobox-value">Philip Roy</span></div><p class="text-xs text-slate-500 mt-2">+ 10 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/a/af/Iron_Lung_%28film%29_poster.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/a/af/Iron_Lung_%28film%29_poster.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Markiplier_%2829479437367%29_%28cropped%29.jpg/250px-Markiplier_%2829479437367%29_%28cropped%29.jpg" alt="Mark Fischach." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Mark Fischach.</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://en.wikipedia.org/wiki/Iron_Lung_%28film%29" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://en.wikipedia.org/wiki/Iron_Lung_%28film%29</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#11</span>
+                    <span class="text-xl font-bold gradient-text">The Boys season 5</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">3 paragraf • 4 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>The fifth and final season of the American satirical superhero television series The Boys, the first series in the franchise based on the comic book series of the same name created by Garth Ennis and Darick Robertson, was developed for television by Eric Kripke. The season was produced by Sony Pictures Television and Amazon MGM Studios in association with Point Grey Pictures, Original Film, Kripke Enterprises, Kickstart Entertainment, and KFL Nightsky Productions.</p><p>The show's fifth season stars Karl Urban, Jack Quaid, Antony Starr, Erin Moriarty, Jessie T. Usher, Laz Alonso, Chace Crawford, Tomer Capone, Karen Fukuhara, Nathan Mitchell, Colby Minifie, Susan Heyward, Valorie Curry, and Cameron Crovetti, all returning from prior seasons, with Daveed Diggs joining the cast. In the season, the Boys and Billy Butcher, who possesses a virus capable of killing all Supes in the world, join forces one last time to try to end the reign of Homelander, who now threatens to become immortal with the discovery of V1, the first version of Compound V.</p><p>The world premiere took place on March 19, 2026, at Cinema Moderno in Rome, Italy. The season premiered on the streaming service Amazon Prime Video on April 8, 2026, with its first two episodes. The remaining six episodes were released weekly until May 20. The season received generally favorable reviews, with praise towards its action sequences, character development, social commentary, humor, storyline, performances (particularly Urban, Starr, Fukuhara, and Ackles), and having a satisfying conclusion; however, some criticized its pacing and claimed the season suffered from a lack of focus.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Showrunner</span><span class="infobox-value">Eric Kripke</span></div><div class="infobox-item"><span class="infobox-key">Starring</span><span class="infobox-value">Karl Urban Jack Quaid Antony Starr Erin Moriarty Jessie T. Usher Laz Alonso Chace Crawford Tomer Capone Karen Fukuhara Nathan Mitchell Colby Minifie Susan Heyward Valorie Curry Daveed Diggs Cameron Cr</span></div><div class="infobox-item"><span class="infobox-key">No. of episodes</span><span class="infobox-value">8</span></div><div class="infobox-item"><span class="infobox-key">Original network</span><span class="infobox-value">Amazon Prime Video</span></div><div class="infobox-item"><span class="infobox-key">Original release</span><span class="infobox-value">April 8 (2026-04-08) –May 20, 2026 (2026-05-20)</span></div></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/9/9b/The_Boys_Season_5.jpg/250px-The_Boys_Season_5.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/9/9b/The_Boys_Season_5.jpg/250px-The_Boys_Season_5.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Misha_Collins_%26_Jensen_Ackles_%2848478258422%29_%28cropped%29.jpg/250px-Misha_Collins_%26_Jensen_Ackles_%2848478258422%29_%28cropped%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 1 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://en.wikipedia.org/wiki/The_Boys_season_5" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://en.wikipedia.org/wiki/The_Boys_season_5</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#12</span>
+                    <span class="text-xl font-bold gradient-text">Donald Trump</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">19 paragraf • 23 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Donald John Trump (/ˈdɒnəld dʒɒn trʌmp/; lahir 14 Juni 1946) adalah pebisnis, presenter acara realitas, dan politikus Amerika Serikat yang menjabat sebagai Presiden Amerika Serikat ke-45 dari 2017 hingga 2021 dan ke-47 sejak 2025. Trump adalah satu-satunya yang menjadi Presiden Amerika Serikat dengan belum pernah menyentuh atau belum pernah pengalaman memegang jabatan politik sama sekali, tetapi hanya pernah pengalaman dalam memegang ekonomi berbisnis saja di masa kehidupan pribadinya dari Sejarah Amerika Serikat.</p><p>Trump meraih gelar sarjana dari jurusan ekonomi di Universitas Pennsylvania pada tahun 1968. Ia mengambil alih kendali perusahaan properti dan konstruksi milik ayahnya, Fred Trump pada tahun 1971 dan menamainya The Trump Organization. Trump memperluas operasi perusahaan untuk membangun dan merenovasi gedung pencakar langit, hotel, kasino, dan lapangan golf. Ia kemudian memulai berbagai usaha sampingan, sebagian besar dengan melisensikan namanya. Dari 2004 hingga 2015, ia ikut memproduseri dan menjadi pembawa acara serial televisi realitas The Apprentice. Trump dan bisnisnya telah terlibat dalam lebih dari 4.000 tindakan hukum negara bagian dan federal, termasuk enam kebangkrutan.</p><p>Posisi politik Trump telah digambarkan sebagai populis, proteksionis, isolasionis, dan nasionalis. Ia mengikuti pemilihan presiden AS 2016 sebagai calon dari Partai Republik dan berhasil mengalahkan calon dari Demokrat Hillary Clinton meski kalah dalam suara populer,[a] menjadi presiden Amerika Serikat pertama tanpa pengalaman sebelumnya di dinas militer atau di pemerintahan. Penyelidikan jaksa khusus 2017–2019 yang dipimpin oleh Robert Mueller menetapkan bahwa Rusia ikut campur dalam pemilihan 2016 untuk menguntungkan kampanye Trump. Pemilihan dan kebijakan Trump memicu banyak protes.</p><p>Kebijakan Trump meliputi renegosiasi perjanjian dagang Amerika Serikat–Tiongkok, penolakan terhadap beberapa perjanjian dagang seperti NAFTA dan Kemitraan Trans-Pasifik, penegakan hukum imigrasi yang lebih ketat serta membangun tembok di sepanjang perbatasan A.S.–Meksiko, reformasi perawatan veteran, pembatalan dan penggantian Undang-Undang Layanan Kesehatan Terjangkau (Affordable Care Act), dan pemotongan pajak. Setelah serangan Paris November 2015, Trump mengusulkan penghentian sementara imigrasi Muslim ke Amerika Serikat; ia kemudian mengubah rencana kebijakannya menjadi "pemeriksaan latar sangat ketat" dari negara-negara tertentu.</p><p>Trump kalah dalam pemilihan umum Presiden AS 2020 dari Joe Biden, tetapi menolak untuk mengakui kekalahannya, mengeklaim adanya kecurangan pemilu yang meluas dan berusaha untuk membatalkan hasil pemilu dengan menekan para pejabat pemerintah, mengajukan sejumlah gugatan hukum yang gagal, dan menghalangi transisi kepresidenan. Pada 6 Januari 2021, Trump mendesak para pendukungnya untuk berbaris ke Gedung Kongres AS, yang kemudian diserbu oleh banyak orang, mengakibatkan banyak kematian dan mengganggu penghitungan suara pemilu.</p><p>Trump adalah satu-satunya presiden Amerika yang telah dimakzulkan dua kali. Setelah dia mencoba menekan Ukraina pada 2019 untuk menyelidiki Biden, dia dimakzulkan pada Desember oleh Dewan Perwakilan Rakyat atas penyalahgunaan kekuasaan dan menghalangi Kongres; dia dibebaskan oleh Senat pada Februari 2020. DPR memakzulkan Trump untuk kedua kalinya pada Januari 2021, atas tuduhan menghasut pemberontakan, dan Senat membebaskannya pada bulan berikutnya. Pada Desember 2022, Komite DPR 6 Januari merekomendasikan dakwaan pidana terhadap Trump karena menghalangi proses resmi, konspirasi untuk menipu AS, dan menghasut atau membantu pemberontakan. Para akademisi dan sejarawan menilai Trump sebagai salah satu presiden terburuk dalam sejarah Amerika.</p><p>Sejak meninggalkan jabatannya, Trump tetap terlibat dalam Partai Republik. Pada November 2022, ia mengumumkan pencalonan dirinya sebagai kandidat Partai Republik dalam pemilihan umum presiden 2024.</p><p>Pada bulan Mei 2024, hakim di New York menyatakan Trump tersangka atas 34 dakwaan kejahatan karena memalsukan catatan bisnis yang terkait dengan pembayaran uang tutup mulut kepada Stormy Daniels. Dengan demikian, Trump menjadi presiden AS pertama yang dihukum penjara karena kejahatan. Dia menghadapi 54 dakwaan kejahatan lainnya dalam tiga dakwaan lainnya: penuntutan federal di Florida terkait dengan kesalahan penanganan dokumen rahasia; penuntutan federal di Washington, D.C., dengan tuduhan konspirasi dan obstruksi atas upaya untuk membatalkan pemilihan umum presiden tahun 2020; dan penuntutan negara bagian di Georgia atas tuduhan pemerasan dan tindak pidana lainnya yang dilakukan dalam upaya untuk membatalkan hasil pemilihan negara bagian tahun 2020. Dalam proses perdata terpisah di pengadilan negara bagian New York, Trump dinyatakan bertanggung jawab atas penipuan keuangan pada tahun 2024, dan pada tahun 2023 dinyatakan bertanggung jawab atas pelecehan seksual terhadap E. Jean Carroll. Trump mengajukan banding atas kedua putusan tersebut. Pada Juli 2024, dia selamat dari percobaan pembunuhan pada rapat umum kampanye di Pennsylvania.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 11 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Wakil Presiden</span><span class="infobox-value">Mike Pence</span></div><div class="infobox-item"><span class="infobox-key">Lahir</span><span class="infobox-value">Donald John Trump14 Juni 1946 (umur 80)Queens, Kota New York, Amerika Serikat</span></div><div class="infobox-item"><span class="infobox-key">Partai politik</span><span class="infobox-value">Republik (1969–1978, 1987–1999, 2009–2011, 2012–sekarang)</span></div><div class="infobox-item"><span class="infobox-key">Afiliasi politiklainnya</span><span class="infobox-value">Reformasi (1999–2001) Demokrat (2001–2009) Independen (2011–2012)</span></div><div class="infobox-item"><span class="infobox-key">Suami/istri</span><span class="infobox-value">Ivana Zelníčková ​ ​(m. 1977; c. 1990)​  Marla Maples ​ ​(m. 1993; c. 1999)​  Melania Knauss ​(m. 2005)​</span></div><div class="infobox-item"><span class="infobox-key">Anak</span><span class="infobox-value">Donald Jr. Ivanka Eric Tiffany Barron</span></div><p class="text-xs text-slate-500 mt-2">+ 5 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Official_Presidential_Portrait_of_President_Donald_J._Trump_%282025%29.jpg/250px-Official_Presidential_Portrait_of_President_Donald_J._Trump_%282025%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Arrow_left_pictogram.png/20px-Arrow_left_pictogram.png" alt="Sebelum" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Sebelum</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Arrow_right_pictogram_01.png/20px-Arrow_right_pictogram_01.png" alt="Sebelum" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Sebelum</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 20 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Donald_Trump" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Donald_Trump</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#13</span>
+                    <span class="text-xl font-bold gradient-text">Nicolás Maduro</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">6 paragraf • 26 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Nicolás Maduro Moros (bahasa Spanyol: [nikoˈlas maˈðuɾo ˈmoɾos] ( simak); lahir 23 November 1962) adalah seorang politikus Venezuela yang menjabat sebagai Presiden ke-65 Venezuela sejak tahun 2013. Sebelumnya ia menjabat di bawah Presiden Hugo Chávez sebagai Menteri Luar Negeri dari tahun 2006 hingga 2013 dan sebagai Wakil Presiden Venezuela dari tahun 2012 sampai 2013.</p><p>Ia merupakan seorang mantan sopir bus, yang kemudian menjadi seorang pemimpin serikat buruh, sebelum terpilih menjadi anggota Majelis Nasional pada tahun 2000. Ia diangkat ke sejumlah posisi dalam Pemerintahan Venezuela di bawah masa kepemimpinan Chávez, di antaranya sebagai Menteri Luar Negeri pada tahun 2006 dan menjadi Wakil Presiden pada tahun 2012. Ia selama ini dideskripsikan sebagai "administrator dan politikus yang paling cakap pada lingkaran dalam Chávez". Setelah kematian Chávez diumumkan pada tanggal 5 Maret 2013, Maduro diasumsikan sebagai pemegang kekuasaan dan tanggung jawab presiden selanjutnya. Sebuah pemilihan khusus diadakan pada 14 April 2013 untuk memilih presiden baru, dan Nicolás Maduro menang dengan perolehan 50,62 % suara sebagai kandidat dari Partai Sosialis Bersatu Venezuela. Ia secara resmi dilantik pada 19 April 2013.</p><p>Sejak terpilih menjadi presiden, Maduro lebih banyak melanjutkan berbagai kebijakan Chávez, dan hal tersebut malah menimbulkan penurunan status sosial ekonomi di Venezuela, di mana tindak kejahatan, inflasi, kemiskinan dan kelaparan meningkat pesat. Kekurangan yang terjadi di Venezuela dan standar hidup yang menurun mengakibatkan timbulnya aksi protes yang dimulai pada 2014, aksi itu kemudian malah meningkat menjadi kerusuhan nasional hingga pada tahun 2016 ini. Maduro dianggap seperti Chávez, yang menerapkan gaya kepemimpinan otoriter.</p><p>Pada Sabtu, 3 Januari 2026, pemerintah Amerika Serikat melalui militernya menculik Maduro dituduh memimpin organisasi perdagangan narkotik internasional. Amerika Serikat telah lama mengincar cadangan gas dan minyak Venezuela yang disebut sangat menguntungkan.</p><p>Venezuela diyakini memiliki cadangan minyak dan gas yang sangat melimpah bahkan diyakini sebagai yang terbesar di dunia.</p><p>Sebuah video dari bulan September 2018 menunjukkan, Maduro sedang makan di restoran terkenal milik Salt Bae di Istanbul. Hal ini dikritik karena adanya kelangkaan bahan makanan dan krisis pangan di Venezuela.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Wakil Presiden</span><span class="infobox-value">Jorge Arreaza (2013–16)  Aristóbulo Istúriz (2016–17)Tareck El Aissami (2017–18)Delcy Rodríguez (2018–sekarang)</span></div><div class="infobox-item"><span class="infobox-key">Presiden</span><span class="infobox-value">Hugo Chávez</span></div><div class="infobox-item"><span class="infobox-key">Lahir</span><span class="infobox-value">Nicolás Maduro Moros23 November 1962 (umur 63)Caracas, Venezuela</span></div><div class="infobox-item"><span class="infobox-key">Partai politik</span><span class="infobox-value">Partai Sosialis Bersatu Venezuela (2007–sekarang)Gerakan Republik Kelima (Sebelum 2007)</span></div><div class="infobox-item"><span class="infobox-key">Suami/istri</span><span class="infobox-value">Cilia Flores</span></div></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Nicol%C3%A1s_Maduro_in_2023_%28cropped%29.jpg/250px-Nicol%C3%A1s_Maduro_in_2023_%28cropped%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Arrow_left_pictogram.png/20px-Arrow_left_pictogram.png" alt="Sebelum" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Sebelum</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Arrow_left_pictogram.png/20px-Arrow_left_pictogram.png" alt="Sebelum" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Sebelum</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 23 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Nicol%C3%A1s_Maduro" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Nicol%C3%A1s_Maduro</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#14</span>
+                    <span class="text-xl font-bold gradient-text">Berkas Epstein</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 4 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Berkas Epstein adalah kumpulan dokumen, gambar, dan video berjumlah lebih dari 6 juta halaman yang memerinci aktivitas kriminal pemodal Amerika Serikat sekaligus terpidana pelaku kejahatan seksual terhadap anak, Jeffrey Epstein, beserta lingkaran sosialnya yang terdiri dari para tokoh publik, termasuk politisi dan selebritas.</p><p>Selama kampanye kepresidenannya tahun 2024, Donald Trump sempat menggulirkan wacana untuk merilis berkas Epstein, meskipun kemudian ia menyatakan bahwa berkas-berkas tersebut hanyalah rekayasa yang dibuat oleh anggota Partai Demokrat.</p><p>Pada tanggal 18 November 2025, Dewan Perwakilan Rakyat Amerika Serikat mengesahkan Undang-Undang Transparansi Berkas Epstein melalui pemungutan suara dengan hasil 427–1, dan Senat Amerika Serikat menyetujuinya secara aklamasi; Trump menandatangani rancangan undang-undang tersebut keesokan harinya. Departemen Kehakiman Amerika Serikat merilis sejumlah kecil berkas Epstein pada tenggat waktu undang-undang tersebut, yakni 19 Desember 2025, yang memicu kritik lintas partai. Pada tanggal 30 Januari 2026, tambahan 3 juta halaman dirilis, termasuk 2.000 video dan 180.000 gambar. Walaupun Departemen Kehakiman mengakui bahwa total 6 juta halaman mungkin memenuhi syarat sebagai berkas yang harus dirilis berdasarkan Undang-Undang Transparansi Berkas Epstein, pihak departemen menyatakan bahwa perilisan tanggal 30 Januari tersebut merupakan yang terakhir dan pihaknya telah memenuhi kewajiban hukumnya. Berkas yang dirilis tersebut menyebutkan sejumlah tokoh publik dan memicu peningkatan sorotan terhadap Putri Mette-Marit, Andrew Mountbatten-Windsor, Sarah Ferguson, Peter Mandelson, Steve Tisch, Elon Musk, Donald Trump, Bill Clinton, Larry Summers, serta Peter Attia.</p><p>Jeffrey Epstein didakwa pada tahun 2006 dan menerima kesepakatan pengakuan bersalah pada tahun 2008. Ia didakwa kembali pada tahun 2019 dan meninggal di penjara. Epstein membina lingkaran sosial tokoh-tokoh publik yang mencakup politisi dan selebritas. Hal ini memicu teori konspirasi bahwa Epstein menyimpan daftar klien yang kepadanya ia telah memperdagangkan gadis-gadis muda, bahwa ia menggunakannya untuk memeras mereka, dan bahwa ia dibunuh oleh mereka; teori-teori ini disebarluaskan secara luas setelah kematiannya pada tahun 2019, termasuk oleh presiden saat itu, Donald Trump, dan kembali mencuat pada tahun 2025.</p><p>Istilah "berkas Epstein" merujuk pada dokumen-dokumen yang dikumpulkan sebagai bukti dalam kasus pidana terhadap Epstein dan rekan-rekannya, yang tersimpan sebagai data berukuran lebih dari 300 gigabita, ditambah media lainnya, di dalam sistem manajemen kasus Sentinel milik FBI. Dokumen-dokumen tersebut meliputi buku kontaknya, catatan penerbangan pesawatnya, dan dokumen pengadilan; beberapa di antaranya telah dirilis ke publik dalam bentuk yang telah disunting. Sebagai contoh, dokumen pengadilan dan catatan penerbangan memuat berbagai individu terkemuka yang pernah bepergian dengan Epstein, atau pernah berhubungan dengannya.</p><p>Daftar Epstein adalah dokumen yang diklaim terdapat dalam kumpulan ini yang memuat nama-nama klien profil tinggi yang kepadanya Epstein memperdagangkan gadis-gadis muda. Epstein membina lingkaran sosial tokoh publik yang mencakup politisi dan selebritas, memicu klaim yang menunjukkan bahwa ia menyimpan daftar semacam itu untuk memeras rekan-rekannya—dan bahwa kematiannya pada tahun 2019 bukanlah bunuh diri (seperti yang dilaporkan secara resmi) melainkan pembunuhan untuk melindungi klien-kliennya. Klaim seputar keberadaan daftar klien pertama kali mencuat segera setelah kematian Epstein, yang kemudian menjadi sorotan utama pada tahun 2025 menyusul cuitan yang kini telah dihapus dari mantan penasihat senior Gedung Putih dan rekan Departemen Efisiensi Pemerintah Elon Musk yang menuduh bahwa presiden Amerika Serikat Donald Trump ada "di dalam berkas Epstein". Pemerintahan Trump melalui Departemen Kehakiman Amerika Serikat (DOJ) merilis sebuah memo pada tanggal 7 Juli 2025, yang menyatakan bahwa daftar tersebut tidak ada dan "tidak ditemukan bukti kredibel bahwa Epstein memeras individu-individu terkemuka sebagai bagian dari tindakannya. Kami tidak menemukan bukti yang dapat mendasari penyelidikan terhadap pihak ketiga yang tidak didakwa." Memo tersebut ditanggapi dengan skeptisisme oleh para komentator politik dari berbagai spektrum politik, seperti Alex Jones dan John Oliver.</p><p>"Buku hitam Epstein" atau "buku hitam kecil Epstein" merujuk pada buku setebal 97 halaman berisi nama, nomor telepon, surel, dan alamat rumah yang diambil oleh seorang mantan karyawan dari rumah Epstein pada tahun 2005 dan kemudian mencoba dijualnya. Gawker menerbitkan versi yang telah disunting pada tahun 2015, dan versi tanpa suntingan dirilis di 8chan pada tahun 2019. Buku kontak kedua, yang terkadang disebut sebagai "buku hitam kecil Epstein yang lain", diterbitkan oleh Business Insider pada tahun 2021, dan bertanggal Oktober 1997. Menurut reporter investigasi Julie K. Brown, pacar Epstein saat itu, Ghislaine Maxwell, menyusun direktori tersebut, yang mencakup selebritas serta tukang kebun, penata rambut, tukang cukur, dan ahli listrik Epstein. Brown mengatakan bahwa "apa yang disebut daftar itu sebenarnya hanyalah pengalih perhatian" dan bahwa "setiap kali Epstein atau Maxwell bertemu seseorang yang penting, mereka akan meminta informasi kontak mereka, dan mereka akan memasukkannya ke dalam berkas ini ... Jadi sangat jelas bahwa ini bukanlah buku hitam dalam artian bahwa ini semua adalah kliennya. Itu hanyalah sebuah direktori telepon." Memo DOJ bulan Juli 2025 menyatakan bahwa tidak ada daftar klien dalam berkas Epstein dan bahwa penyelidik tidak menemukan bukti kredibel bahwa Epstein menggunakan materi semacam itu untuk memeras rekan-rekannya. Memo tersebut juga menegaskan bahwa kematian Epstein adalah bunuh diri.</p><p>Trump dan Epstein saling mengenal sejak akhir tahun 1980-an hingga pertengahan tahun 2000-an. Dalam sebuah wawancara tahun 2002 dengan majalah New York, Trump menyebut Epstein sebagai "orang yang luar biasa" yang "menyukai wanita cantik sama seperti saya, dan banyak dari mereka yang berusia muda." Hubungan mereka merenggang pada awal tahun 2000-an, dengan alasan yang sering dikutip meliputi perselisihan mengenai karyawan dan kesepakatan lahan yasan tahun 2004 di Palm Beach, Florida, di mana Trump mengalahkan tawaran Epstein untuk sebuah rumah mewah di tepi laut. Pada tahun 2003, Trump menyumbangkan sebuah surat untuk sebuah album jilid ucapan selamat ulang tahun yang diberikan kepada Epstein pada ulang tahunnya yang ke-50; The Wall Street Journal melaporkan bahwa surat tersebut memuat konten sugestif, yang dibantah Trump sebagai tulisannya. Pada bulan Oktober 2007, Trump mencabut keanggotaan Epstein di Mar-a-Lago.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/U.S._Virgin_Islands%2C_Department_of_Justice%2C_Sexual_Offender_Registry_Photograph_4.png/250px-U.S._Virgin_Islands%2C_Department_of_Justice%2C_Sexual_Offender_Registry_Photograph_4.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Release_the_Epstein_Files_%2854865107452%29.jpg/250px-Release_the_Epstein_Files_%2854865107452%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Jeffrey_Epstein_signature_passport%2C_2026.png/120px-Jeffrey_Epstein_signature_passport%2C_2026.png" alt="Jeffrey Epstein's signature" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Jeffrey Epstein's signature</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 1 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Epstein_files" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Epstein_files</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#15</span>
+                    <span class="text-xl font-bold gradient-text">Ali Khamenei</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 9 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Ali Hosseini Khamenei (bahasa Persia: سید علی حسینی خامنه‌ایcode: fa is deprecated , diucapkan [ʔæˈliː hosejˈniː xɒːmeneˈʔiː] simakⓘ; 19 April 1939 – 28 Februari 2026) adalah seorang politikus dan ulama Syiah Iran yang menjabat sebagai pemimpin tertinggi Iran dari tahun 1989 hingga pembunuhannya pada tahun 2026. Sebelumnya, ia menjabat sebagai presiden Iran dari tahun 1981 hingga 1989. Masa jabatannya sebagai pemimpin tertinggi, yang berlangsung selama 36 tahun enam bulan, menjadikannya kepala negara dengan masa jabatan terlama di Timur Tengah pada saat kematiannya dan pemimpin Iran dengan masa jabatan terlama sejak Mohammad Reza Pahlavi.</p><p>Khamenei masuk seminari setelah menyelesaikan pendidikan dasarnya. Ia melanjutkan pendidikan klasikalnya hingga tahun kedua sekolah menengah atas. Ia menerima pendidikan seminari di seminari Masyhad, Najaf dan Qom. Saat remaja, Khamenei berkenalan dengan Navvab Safavi, pendiri dan pemimpin komunitas Fedaiyan Islam. Menurutnya, Navvab Safavi menciptakan percikan pertama motivasi revolusioner Islam dalam dirinya. Pada 1976, ia bertemu dengan Ruhollah Khomeini. Bertemu dan bertemu Khomeini memperkuat semangat revolusioner Khamenei. Sejalan dengan tujuan gerakan Khomeini, ia melanjutkan aktivitasnya melawan Dinasti Pahlavi, dan selama perjuangan ini, pemerintah Pahlavi menangkapnya enam kali. Pada tahun 1977, Gendarmerie mengasingkannya ke Iransyahr selama tiga tahun, ia kembali ke Teheran pada tahun 1978, pada puncak protes rakyat. Setelah Revolusi Iran tahun 1978, Khamenei menjadi anggota Dewan Revolusi, Imam Salat Jumat Teheran, dan Wakil Menteri Pertahanan. Setelah itu, ia menjadi wakil Teheran di Majelis Permusyawaratan Islam untuk satu periode dan Presiden Iran untuk dua periode. Setelah revolusi Iran menggulingkan Shah, dia menjadi target percobaan pembunuhan pada Juni 1981 yang melumpuhkan lengan kanannya. Khamenei adalah salah satu pemimpin Iran selama Perang Iran-Irak pada 1980-an, dan mengembangkan hubungan dekat dengan Pengawal Revolusi. Khamenei juga dianggap oleh seluruh warga Iran sebagai musuh bebuyutan rakyat Iran dan dalang di balik terorisme internasional serta penjahat terhadap kemanusiaan.</p><p>Setelah kematian Ruhollah Khomeini pada tahun 1989, Majelis Ahli memilihnya sebagai pemimpin kedua Iran. Sejak 1973, ia telah diumumkan sebagai salah satu Marja Syiah yang diterima oleh komunitas guru seminari Qom. Majalah Forbes menempatkan Khamenei ke-18 dalam daftar orang paling berkuasa di dunia pada tahun 2015.</p><p>Nenek moyang Ali Khamenei adalah Sayyid Hossein Tafreshi, keturunan Sayyid Aftasi yang konon mencapai Sultan ul-Ulama Ahmad, yang dikenal sebagai Sultan Sayyid, cucu dari Imam Syiah keempat, Ali al-Sajjad. Beberapa leluhurnya berasal dari Tafresh di Provinsi Markazi saat ini dan bermigrasi dari rumah asalnya di Tafresh ke Khamaneh dekat Tabriz.</p><p>Ali Hosseini Khamenei lahir pada 19 April 1939 dari Javad Khamenei, seorang ulama dan mujtahid yang lahir di Najaf, Irak, dan Khadijeh Mirdamadi (putri Hashem Mirdamadi) di Mashhad. Ia adalah anak kedua dari delapan bersaudara. Dua saudara laki-lakinya juga ulama; adik laki-lakinya, Hadi Khamenei, adalah editor surat kabar dan ulama. Kakak perempuannya, Fatemeh Hosseini Khamenei, meninggal pada tahun 2015, pada usia 89 tahun. Ayahnya adalah etnis Turki Azerbaijan dari Khamaneh. Ibunya adalah etnis Persia dari Yazd.</p><p>Pendidikan Khamenei dimulai pada usia empat tahun, dengan mempelajari Al-Qur'an di Maktab; ia menghabiskan studi seminari tingkat dasar dan lanjutannya di hawza Mashhad, di bawah bimbingan mentor seperti Sheikh Hashem Qazvini dan Ayatollah Milani.</p><p>Di Mashhad, ia juga sering bergaul dengan para intelektual sekuler serta Gerakan Sosialis Penyembah Tuhan, sebuah organisasi politik yang menganjurkan sosialisme Islam dan dipengaruhi oleh tokoh-tokoh seperti Karl Marx, Che Guevara, Tito, dan Ali Shariati; Khamenei ikut serta dalam seminar dan khotbah mereka, yang bagi Abbas Milani akan memengaruhi paham Dunia Ketiga di kemudian hari. Pada tahun 1957, ia pergi ke Najaf, tetapi segera kembali ke Mashhad karena ayahnya tidak mengizinkannya tinggal di sana. Pada tahun 1958, ia menetap di Qom, di mana ia mengikuti kelas-kelas Husayn Burujardi dan Ruhollah Khomeini. Seperti banyak ulama yang aktif secara politik pada waktu itu, Khamenei jauh lebih terlibat dalam politik daripada studi keagamaan.</p><p>Pada tahun-tahun berikutnya, Khamenei menggambarkan masa kecilnya dalam refleksi otobiografis, menggambarkan dirinya dibesarkan dalam keluarga yang sangat religius. Ia menyatakan bahwa ibunya berasal dari keluarga ulama dan pendidikan agama membentuk masa kecilnya. Ia mengingat prestasinya yang gemilang dalam studi, melafalkan Al-Quran di sekolah, dan mengembangkan minat awal pada hadis dan kisah-kisah kenabian. Ia menggambarkan pertemuan keluarga di mana ibunya melafalkan ayat-ayat Al-Quran, khususnya yang berkaitan dengan kehidupan para nabi. Ia menekankan minat intelektualnya yang luas di luar bidang studi agama, termasuk matematika, geografi, dan terutama sejarah.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Presiden</span><span class="infobox-value">Lihat daftar  Dirinya sendiri  Akbar Hashemi Rafsanjani  Muhammad Khatami  Mahmud Ahmadinejad  Hassan Rouhani  Ebrahim Raisi  Mohammad Mokhber (pelaksana tugas)  Masoud Pezeshkian</span></div><div class="infobox-item"><span class="infobox-key">Pemimping Agung</span><span class="infobox-value">Ruhollah KhomeiniDirinya sendiri</span></div><div class="infobox-item"><span class="infobox-key">Perdana Menteri</span><span class="infobox-value">Mir-Hossein Mousavi</span></div><div class="infobox-item"><span class="infobox-key">Lahir</span><span class="infobox-value">Ali Hosseini Khamenei(1939-04-19)19 April 1939Masyhad, Iran</span></div><div class="infobox-item"><span class="infobox-key">Meninggal</span><span class="infobox-value">28 Februari 2026(2026-02-28) (umur 86)Teheran, Iran</span></div><div class="infobox-item"><span class="infobox-key">Sebab kematian</span><span class="infobox-value">Pembunuhan melalui serangan udara</span></div><p class="text-xs text-slate-500 mt-2">+ 6 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Ali_Khamenei_Nowruz_message_official_portrait_1397_02.jpg/250px-Ali_Khamenei_Nowruz_message_official_portrait_1397_02.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Arrow_left_pictogram.png/20px-Arrow_left_pictogram.png" alt="Sebelum" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Sebelum</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Arrow_right_pictogram_01.png/20px-Arrow_right_pictogram_01.png" alt="Sebelum" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Sebelum</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 6 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Ali_Khamenei" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Ali_Khamenei</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#16</span>
+                    <span class="text-xl font-bold gradient-text">Carlos Alcaraz</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">7 paragraf • 2 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Carlos Alcaraz Garfia (lahir 5 Mei 2003) adalah seorang pemain tenis profesional Spanyol. Dia saat ini menduduki peringkat sebagai pemain tunggal nomor 1 dunia oleh Asosiasi Tenis Profesional (ATP). Alcaraz telah memenangkan enam gelar tunggal ATP Tour, termasuk AS Terbuka 2022 dan dua gelar Masters 1000. Dengan memenangkan AS Terbuka pada September 2022, Alcaraz menjadi pria termuda yang menduduki peringkat No. 1 dunia dalam sejarah, pada usia 19 tahun 4 bulan dan 6 hari.</p><p>Sebagai junior, Alcaraz menduduki peringkat tertinggi 22 dunia dan meraih dua gelar di Sirkuit Junior ITF. Setelah menjadi profesional pada tahun 2018, ia memenangkan tiga gelar di Tur Tenis Dunia ITF Pria dan empat di Tur Challenger ATP dan masuk ke peringkat 100 teratas pada Mei 2021. Dua bulan kemudian, Alcaraz mencapai final Tur ATP pertamanya di 2021. Kroasia Terbuka, turnamen ATP 250, di mana ia memenangkan gelar pertamanya. Dia kemudian masuk 50 besar setelah mencapai perempat final di AS Terbuka berikutnya dan memenangkan Final ATP Generasi Berikutnya 2021 akhir tahun di Milan.</p><p>Setelah memenangkan gelar ATP 500 pertamanya di Rio Terbuka pada Februari 2022, Alcaraz memenangkan gelar Master 1000 pertamanya di Miami Terbuka dan gelar ATP 500 keduanya di Barcelona Terbuka pada bulan April, mendorongnya ke 10 besar. Pada September 2022, Alcaraz mengalahkan Casper Ruud di final AS Terbuka untuk memenangkan gelar tunggal utama pertamanya. Pada Mei 2023, dia dianugerahi penghargaan Laureus World Breakthrough of the Year. Pada Juli 2023, Alcaraz memenangkan Wimbledon, mengalahkan juara bertahan empat kali Novak Djokovic di final untuk merebut gelar tunggal utama keduanya.</p><p>Menang turnamen, atau mencapai babak Final, Semifinal, Perempatfinal, Putaran 4, 3, 2, 1, bermain di Penyisihan Grup atau kalah di Putaran ke-3, 2, 1 kualifikasi. Absen dari turnamen atau berpartisipasi di turnamen beregu, bermain di Piala Davis Grup Zona (dengan tanda angka) atau Pertandingan Penentuan, meraih medali perak atau perunggu di Olimpiade. Yang terakhir untuk turnamen Masters Series/1000 yang turun kelas (bukan Masters Series).</p><p>Alcaraz adalah pemain kelahiran tahun 2000-an pertama yang memenangkan gelar ATP Masters 1000 dan juga memenangkan beberapa gelar Masters 1000.</p><p>Templat:Juara tunggal putra WimbledonTemplat:Juara tunggal putra AS Terbuka</p><p>Artikel bertopik biografi terkait tenis Spanyol ini adalah sebuah rintisan. Anda dapat membantu Wikipedia dengan mengembangkannya.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Nama lengkap</span><span class="infobox-value">Carlos Alcaraz Garfia</span></div><div class="infobox-item"><span class="infobox-key">Kewarganegaraan</span><span class="infobox-value">Spanyol</span></div><div class="infobox-item"><span class="infobox-key">Tempat tinggal</span><span class="infobox-value">Villena, Spanyol</span></div><div class="infobox-item"><span class="infobox-key">Lahir</span><span class="infobox-value">5 Mei 2003 (umur 23)El Palmar, Murcia, Spanyol</span></div><div class="infobox-item"><span class="infobox-key">Tinggi</span><span class="infobox-value">6 ft 0 in (1.83 m)</span></div><div class="infobox-item"><span class="infobox-key">Memulai pro</span><span class="infobox-value">2018</span></div><p class="text-xs text-slate-500 mt-2">+ 13 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Carlos_Alcaraz_2025_FO.jpg/250px-Carlos_Alcaraz_2025_FO.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Carlos_Alcaraz_2025_FO.jpg/250px-Carlos_Alcaraz_2025_FO.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Carlos_Alcaraz" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Carlos_Alcaraz</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#17</span>
+                    <span class="text-xl font-bold gradient-text">Alexander Zverev</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">4 paragraf • 2 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Alexander "Sascha" Zverev Jr. (pelafalan dalam bahasa Jerman: [alɛkˈsandɐ ˈtsvɛʁɛf]; pengucapan bahasa Rusia: [ɐlʲɪˈksandr ˈzvʲerʲef]; lahir 20 April 1997) adalah pemain tenis profesional Jerman.</p><p>Hingga saat ini, Zverev telah meraih empat gelar tunggal dan satu gelar ganda dalam ATP Tour. Termasuk satu gelar Masters 1000 Italia Terbuka yang di raih pada tanggal 21 Mei 2017.</p><p>Zverev lahir di Hamburg, Jerman, 20 April 1997. Kedua orang tuanya, Alexander Zverev Sr. dan Irina adalah mantan petenis Rusia, di mana saat itu ayahnya berkompetisi mewakili Uni Soviet. Zverev juga memiliki seorang kakak yang juga sebagai petenis profesional, Mischa.</p><p>Zverev saat ini tinggal di Monte Carlo, meskipun dia terkadang menghabiskan waktu di Hamburg dan Florida, A.S.
+Hobinya adalah bermain golf dan basket, di mana dia mengakui sebagai penggemar berat Miami Heat.</p>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Nama lengkap</span><span class="infobox-value">Alexander Zverev Jr.</span></div><div class="infobox-item"><span class="infobox-key">Kewarganegaraan</span><span class="infobox-value">Jerman</span></div><div class="infobox-item"><span class="infobox-key">Tempat tinggal</span><span class="infobox-value">Monte Carlo, Monako</span></div><div class="infobox-item"><span class="infobox-key">Lahir</span><span class="infobox-value">20 April 1997 (umur 29)Hamburg, Jerman</span></div><div class="infobox-item"><span class="infobox-key">Tinggi</span><span class="infobox-value">200 cm (6 ft 7 in)</span></div><div class="infobox-item"><span class="infobox-key">Memulai pro</span><span class="infobox-value">2013</span></div><p class="text-xs text-slate-500 mt-2">+ 5 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Zverev_A._WM16_%2837%29_%2827801537234%29.jpg/250px-Zverev_A._WM16_%2837%29_%2827801537234%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Zverev_A._WM16_%2837%29_%2827801537234%29.jpg/250px-Zverev_A._WM16_%2837%29_%2827801537234%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Alexander_Zverev" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Alexander_Zverev</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#18</span>
+                    <span class="text-xl font-bold gradient-text">Victor Wembanyama</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">20 paragraf • 5 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Victor Wembanyama (/ˌwɛmbənˈjɑːmə/  Prancis: [viktɔʁ wɛmbanjama]; lahir 4 Januari 2004), dijuluki "Wemby" atau "Alien", adalah seorang pemain bola basket profesional perancis untuk San Antonio Spurs dari National Basketball Association (NBA). Dianggap sebagai salah satu prospek bola basket terbaik dalam satu generasi, ia terpilih pertama secara keseluruhan oleh Spurs dalam draf NBA 2023.</p><p>Wembanyama memulai karier profesionalnya dengan Nanterre 92 dari LNB Pro A pada tahun 2019. Dua tahun kemudian, dia pindah ke ASVEL dan memenangkan gelar Pro A di satu-satunya musimnya bersama tim. Pada musim 2022-23, Wembanyama menandatangani kontrak dengan Metropolitans 92 dan menjadi pemain termuda yang memenangkan penghargaan Pro A MVP, sekaligus mendapatkan penghargaan Pro A Best Defender dan memimpin liga dalam mencetak gol, rebound, dan blok. Dia dinobatkan sebagai LNB All-Star dua kali, memenangkan MVP All-Star Game satu kali, dan tiga kali menjadi Pemain Muda Terbaik Pro A.</p><p>Wembanyama juga bermain untuk tim nasional Perancis. Di level pemuda, ia memimpin timnya meraih dua medali perak, termasuk di Piala Dunia FIBA U-19 2021, di mana ia mencetak rekor FIBA untuk blok per game dalam satu turnamen.</p><p>Wembanyama lahir pada tanggal 4 Januari 2004, di Le Chesnay, di wilayah Paris. Ayahnya, Félix, berasal dari Kongo dan merupakan atlet atletik yang berkompetisi dalam lompat tinggi, lompat jauh, dan lompat ganda. Lahir di Belgia, Félix memperoleh kewarganegaraan Prancis melalui naturalisasi pada 10 Februari 2003. Ibu Victor, Élodie de Fautereau, adalah pelatih dan mantan pemain bola basket Prancis. Ayah dan ibu Wembanyama masing-masing memiliki tinggi 1,98 meter (6 kaki 6 inci) dan 1,91 meter (6 kaki 3 inci). Kakak perempuannya, Ève, bermain bola basket secara profesional, dan adik laki-lakinya, Oscar, bermain bola basket dan bola tangan di tingkat remaja. Kakek dari pihak ibu, Michel de Fautereau, bermain bola basket profesional, dan neneknya, Marie-Christine, juga bermain olahraga tersebut.</p><p>Wembanyama bermain sepak bola sebagai penjaga gawang dan berlatih judo sebelum fokus pada bola basket. Dia belajar bermain bola basket dari ibunya, yang melatih tim junior. Pada usia tujuh tahun, Wembanyama mulai bermain untuk Entente Le Chesnay Versailles, sebelum bergabung dengan sistem pemuda Nanterre 92 pada usia 10 tahun. Dia menarik perhatian Nanterre pada tahun 2013 setelah Michaël Allard, pelatih muda klub, memperhatikannya di bangku cadangan. pertandingan U-11 karena tinggi badannya yang luar biasa, dengan tinggi 1,80 m (5 kaki 11 inci), awalnya salah mengira dia sebagai pelatih. Pada bulan Februari 2018, Wembanyama dipinjamkan ke FC Barcelona untuk Minicopa del Rey, sebuah turnamen U-14 di Spanyol, membawa timnya ke posisi ketiga. Dia menolak tawaran untuk melanjutkan kariernya bersama Barcelona, dengan alasan bahwa para pelatih tidak bersedia menantangnya.</p><p>Pada musim 2019-20, Wembanyama memperoleh pengalaman profesional pertamanya bersama tim senior Nanterre 92 di bawah asuhan pelatih kepala Pascal Donnadieu, menerima waktu bermain terbatas dalam dua pertandingan. Dia terutama berkompetisi di LNB Espoirs, liga Prancis U-21, dan juga bermain untuk tim U-18. Wembanyama melakukan debut profesionalnya pada 29 Oktober 2019, bermain 31 detik melawan Brescia di EuroCup. Pada usia 15 tahun, sembilan bulan dan 25 hari, dia adalah pemain termuda kedua setelah Stefan Petković yang bermain di EuroCup. Pada bulan Februari 2020, Wembanyama bermain untuk tim U-18 Nanterre di turnamen kualifikasi Kaunas untuk Adidas Next Generation Tournament (ANGT). Pada 8 Februari, ia membukukan 22 poin, 15 rebound, dan rekor ANGT sembilan blok dalam kemenangan atas tim U-18 Zaragoza. Wembanyama mencetak rata-rata 15,8 poin, 12 rebound, 2,8 steal, dan enam blok per game di Kaunas, memimpin turnamen dalam blok dan mendapatkan penghargaan tim di semua turnamen. Dia menyelesaikan musim Espoirs dengan rata-rata 10,2 poin, 4,9 rebound, dan 3,3 blok per game, sebagian besar datang dari bangku cadangan.</p><p>Pada musim 2020-21, Wembanyama membagi waktu antara tim senior dan tim U-21 Nanterre dan menandatangani perjanjian untuk juga bermain untuk Center Fédéral di Nationale Masculine 1 (NM1). Pada tanggal 23 September 2020, ia melakukan debut LNB Pro A, meraih satu rebound dalam empat menit melawan JL Bourg. Pada bulan Oktober, Wembanyama tampil dalam video viral di mana ia memamerkan keahliannya dalam permainan pick-up dua lawan dua melawan Rudy Gobert dan Vincent Poirier. Pada 12 Desember, ia mengalami patah tulang akibat stres di fibulanya selama pertandingan Espoirs melawan BCM Gravelines-Dunkerque, dengan perkiraan waktu pemulihan delapan minggu. Wembanyama absen dari turnamen kualifikasi Valencia untuk ANGT. Setelah absen dua setengah bulan karena cedera, ia mulai mendapat lebih banyak waktu bermain bersama tim senior. Pada 25 Mei 2021, Wembanyama mencatatkan rekor tertinggi musim ini dengan 14 poin dan 10 rebound dalam kemenangan 99-87 atas Orléans Loiret. Dia memulai dalam 10 dari 18 penampilan Pro A, dengan rata-rata 6,8 poin dan 4,7 rebound per game, and was named Pro A Best Young Player. dan dinobatkan sebagai Pemain Muda Terbaik Pro A. Di Espoirs, Wembanyama mencetak rata-rata 13,4 poin, 8,6 rebound, dan 3,2 blok, menjadi starter di kelima pertandingannya. Dia memainkan empat pertandingan untuk Center Fédéral, dengan rata-rata 11,8 poin, 6,8 rebound dan tiga blok per game. Setelah musim ini, dia memilih untuk meninggalkan Nanterre.</p><p>Pada 29 Juni 2021, Wembanyama menandatangani kontrak tiga tahun dengan ASVEL dari Pro A dan EuroLeague. Dia tidak bisa bermain selama satu bulan di awal musim karena sakit. Pada tanggal 1 Oktober, Wembanyama melakukan debutnya di EuroLeague, mencatatkan satu blok dalam tiga menit dalam kemenangan 88-76 atas Žalgiris. Pada 10 November, ASVEL mengumumkan bahwa dia akan absen dua hingga tiga minggu karena patah jari. Ia kembali pada 2 Desember, tetapi absen lagi pada 20 Desember, setelah mengalami cedera tulang di bahu kanannya saat melawan Zenit Saint Petersburg, dengan perkiraan waktu pemulihan empat hingga enam minggu. Wembanyama terpilih untuk LNB All-Star Game, yang diadakan pada tanggal 29 Desember, tetapi tidak dapat bermain karena cedera. Dia kembali pada 11 Februari. Pada tanggal 3 April, Wembanyama mencatatkan 25 poin, tujuh rebound, dan tiga blok tertinggi musim ini dalam kemenangan 85-65 atas Le Portel. Dia mencetak 18 poin, kariernya tertinggi di EuroLeague, dengan kekalahan 81-80 Olimpia Milano pada 7 April. Pada tanggal 3 Juni, Wembanyama absen selama sisa musim karena cedera otot psoas yang dideritanya selama pertandingan semifinal Pro A melawan JDA Dijon. Dalam ketidakhadirannya, ASVEL memenangkan kejuaraan Pro A ketiga berturut-turut. Wembanyama kembali menjadi Pemain Muda Terbaik Pro A, dengan rata-rata mencetak 9,4 poin dan 5,1 rebound per game di liga.  Dia mencetak rata-rata 6,5 poin dan 3,8 rebound per game di EuroLeague dan menempati posisi kedua di bawah Rokas Jokubaitis dalam pemungutan suara untuk penghargaan EuroLeague Rising Star. Setelah musim berakhir, dia memilih keluar dari kontraknya dengan ASVEL, meskipun ada janji dari presiden klub Tony Parker untuk membangun tim di sekelilingnya untuk musim berikutnya.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 12 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Posisi</span><span class="infobox-value">Center</span></div><div class="infobox-item"><span class="infobox-key">Liga</span><span class="infobox-value">NBA</span></div><div class="infobox-item"><span class="infobox-key">Lahir</span><span class="infobox-value">4 Januari 2004 (umur 22)Le Chesnay, Prancis</span></div><div class="infobox-item"><span class="infobox-key">Tinggi</span><span class="infobox-value">7 ft 3 in (2,21 m)</span></div><div class="infobox-item"><span class="infobox-key">Berat</span><span class="infobox-value">210 pon (95 kg)</span></div><div class="infobox-item"><span class="infobox-key">Draf NBA</span><span class="infobox-value">2023 / Babak: 1 / Urutan pemilihan: 1 secara keseluruhan</span></div><p class="text-xs text-slate-500 mt-2">+ 7 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Victor_Wembanyama_San_Antonio_Spurs_2024.jpg/250px-Victor_Wembanyama_San_Antonio_Spurs_2024.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Victor_Wembanyama_San_Antonio_Spurs_2024.jpg/250px-Victor_Wembanyama_San_Antonio_Spurs_2024.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Victor_Wembanyama.jpg/250px-Victor_Wembanyama.jpg" alt="Wembanyama reaching to grab a basketball in the ai..." class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Wembanyama reaching to grab a basketball in the ai...</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 2 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Victor_Wembanyama" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Victor_Wembanyama</a>
+                </div>
+            </div>
+            <div class="glass rounded-2xl p-6 md:p-8 border border-slate-700/50 hover-glow transition-all duration-300 result-card">
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <span class="text-lg font-medium text-slate-500">#19</span>
+                    <span class="text-xl font-bold gradient-text">Catherine O'Hara</span>
+                    <span class="status-badge status-success">✅ Sukses</span>
+                    <span class="ml-auto text-xs text-slate-500">18 paragraf • 7 gambar</span>
+                </div>
+                
+                <div class="bento-grid">
+                    <div class="content-text text-sm md:text-base">
+                        <p>Catherine Anne O'Hara OC (4 Maret 1954 – 30 Januari 2026) adalah seorang aktris, komedian, dan penulis skenario Kanada dan Amerika. Ia memulai kariernya dalam sketsa dan komedi improvisasi dalam film dan televisi sebelum mengembangkan kariernya dengan mengambil peran dramatis. Ia telah menerima beberapa penghargaan termasuk dua Primetime Emmy Awards, Golden Globe Award, dan dua Screen Actors Guild Awards.</p><p>Dia memulai kariernya di serial sketsa komedi Second City Television (1976–1984) di mana dia memenangkan Primetime Emmy Award. Dia mendapatkan pengakuan karena berakting dalam film-film seperti After Hours (1985), Heartburn (1986), Beetlejuice (1988), Home Alone (1990) dan Home Alone 2: Lost in New York (1992). Dia berkolaborasi dengan Christopher Guest untuk berakting dalam film mockumentary miliknya Waiting for Guffman (1996), Best in Show (2000), A Mighty Wind (2003), dan For Your Consideration (2006). Dia juga mengisi suara peran dalam film seperti The Nightmare Before Christmas (1993), Chicken Little (2005), Over the Hedge (2006), Monster House (2006), Frankenweenie (2012), dan Elemental (2023).</p><p>Ia mendapatkan kebangkitan kariernya untuk perannya sebagai Moira Rose dalam sitkom CBC Schitt's Creek (2015–2020), memenangkan Primetime Emmy Award untuk Aktris Utama Luar Biasa dalam Serial Komedi. Dia sebelumnya dinominasikan Emmy untuk perannya sebagai bibi Temple Grandin dalam film HBO Temple Grandin (2010). Dia juga berakting dalam serial drama HBO Six Feet Under (2003–2005), seri Netflix A Series of Unfortunate Events (2017–2018), serial komedi Apple TV+ The Studio (2025), dan serial drama pasca-apokaliptik HBO The Last of Us (2025).</p><p>Catherine O'Hara lahir pada tanggal 4 Maret 1954, di Toronto, dari keluarga Katolik keturunan Irlandia. Dia tumbuh sebagai anak keenam dari tujuh bersaudara, dan merupakan kakak perempuan dari seorang musisi dan aktris Mary Margaret O'Hara. Dia lulus dari Burnhamthorpe Collegiate Institute tahun 1974, di mana dia diajar oleh calon walikota Mississauga Carolyn Parrish.</p><p>O'Hara memulai karier komedinya pada tahun 1974 sebagai anggota pemeran dari The Second City di kota kelahirannya, Toronto. Dia adalah pemain pengganti untuk Gilda Radner sampai Radner pergi untuk Saturday Night Live.</p><p>Dua tahun kemudian, kelompok teater ini membuat acara komedi sketsa SCTV, yang kemudian membuat O'Hara menjadi pemain tetap. Pada akhir tahun 1970-an, dia menyediakan sulih suara untuk sejumlah kartun, pekerjaan yang akan berlanjut sepanjang kariernya. Selama periode singkat di awal tahun 1980-an ketika SCTV sedang dalam masa transisi antar jaringan, dia dipekerjakan untuk menggantikan Ann Risley sebagai Saturday Night Live yang sedang dirombak pada tahun 1981. Namun, dia keluar dari acara tersebut tanpa muncul di siaran, memilih untuk kembali ke SCTV ketika acara tersebut menandatangani kontrak dengan NBC. Sudah lama beredar rumor bahwa dia telah keluar dari SNL karena konflik dengan penulis yang mudah marah Michael O'Donoghue, namun O'Hara membantah klaim ini dan mengatakan bahwa dia meninggalkan acara tersebut karena tidak menyukai kehidupan di New York City.</p><p>O'Hara mengembangkan kariernya di televisi pada pertengahan tahun 1970-an. Dia muncul dalam peran sketsa kecil sebagai pembantu rumah tangga dalam acara spesial Wayne and Shuster di CBC pada tahun 1975. Dia tampil dalam film televisi tahun 1976 The Rimshots, serial televisi anak-anak Coming Up Rosie untuk satu musim penuh (1976–77), dan acara televisi khusus, seperti Witch's Night Out dan Intergalactic Thanksgiving. Penampilannya di SCTV, yang mulai ditayangkan secara lokal di Ontario Selatan pada musim gugur tahun 1976, membuatnya terkenal di Kanada. Acara tersebut secara bertahap membangun basis penggemar nasional dan kemudian internasional melalui penayangan ulang. O'Hara sempat meninggalkan SCTV, melewatkan musim 1980–81, tetapi kembali ke acara tersebut tepat sebelum ditayangkan oleh jaringan televisi NBC di AS, dan kemudian dikenal sebagai SCTV Network 90. Karya O'Hara sebagai penulis di acara itu memberinya Emmy Award atas tulisan yang luar biasa dan dua nominasi Emmy Award. Dia meninggalkan SCTV lagi sebelum musim kelima pada tahun 1982, tetapi kembali untuk penampilan tamu sesekali hingga akhir acara pada tahun 1984. O'Hara tampil dalam sejumlah serial televisi dan film televisi dan terus bekerja di televisi hingga kematiannya. Selama tahun 1990-an, dia tampil sebagai bintang tamu di berbagai acara seperti Tales from the Crypt, Oh Baby, Morton & Hayes, dan The Larry Sanders Show. Dia berakting dan menyutradarai beberapa episode dari Dream On dan The Outer Limits, pembuatan kembali serial tahun 1960-an dengan judul yang sama.</p><p>O'Hara menjadi bintang tamu di berbagai serial televisi ternama, termasuk Six Feet Under dan Curb Your Enthusiasm. Pada Mei 2008, diumumkan bahwa dia telah menandatangani kontrak untuk membintangi ABC drama komedi yang akan datang Good Behavior. Perannya dalam film televisi tahun 2010 Temple Grandin mendapatkan tiga nominasi penghargaan: Primetime Emmy Award, Satellite Award, dan Screen Actors Guild Award.</p>
+                        <p class="text-slate-500 italic text-xs mt-3">... dan 10 paragraf lainnya</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">📋 Info</h4>
+                            <div class="space-y-0 text-xs"><div class="infobox-item"><span class="infobox-key">Lahir</span><span class="infobox-value">Catherine Anne O'Hara(1954-03-04)4 Maret 1954Toronto, Ontario, Kanada</span></div><div class="infobox-item"><span class="infobox-key">Meninggal</span><span class="infobox-value">30 Januari 2026(2026-01-30) (umur 71)Los Angeles, California, AS</span></div><div class="infobox-item"><span class="infobox-key">Kewarganegaraan</span><span class="infobox-value">KanadaAmerika Serikat</span></div><div class="infobox-item"><span class="infobox-key">Pekerjaan</span><span class="infobox-value">Aktriskomedianpenulis skenario</span></div><div class="infobox-item"><span class="infobox-key">Tahun aktif</span><span class="infobox-value">1974–2026</span></div><div class="infobox-item"><span class="infobox-key">Suami/istri</span><span class="infobox-value">Bo Welch ​(m. 1992)​</span></div><p class="text-xs text-slate-500 mt-2">+ 2 item lainnya</p></div></div>
+                        <div>
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">🖼️ Gambar</h4>
+                            <div class="space-y-2">
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Catherine_O%27Hara_at_the_2024_Toronto_International_Film_Festival_%28cropped%29.jpg/250px-Catherine_O%27Hara_at_the_2024_Toronto_International_Film_Festival_%28cropped%29.jpg" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/CAN_Order_of_Canada_Officer_ribbon.svg/40px-CAN_Order_of_Canada_Officer_ribbon.svg.png" alt="Gambar Wikipedia" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Gambar Wikipedia</div>
+                                </div>
+                                <div class="image-card rounded-xl overflow-hidden border border-slate-700/50">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Allmovie_square.jpg/40px-Allmovie_square.jpg" alt="Allmovie: an2438" class="w-full h-28 object-cover bg-slate-800" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%231e293b%22/%3E%3Ctext x=%22200%22 y=%22150%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%2364748b%22 text-anchor=%22middle%22%3ENo Image%3C/text%3E%3C/svg%3E'"/>
+                                    <div class="p-1.5 text-xs text-slate-400 bg-slate-800/50 truncate">Allmovie: an2438</div>
+                                </div><p class="text-xs text-slate-500 text-center">+ 4 gambar lainnya</p></div></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
+                    🔗 <a href="https://id.wikipedia.org/wiki/Catherine_O%27Hara" target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">https://id.wikipedia.org/wiki/Catherine_O%27Hara</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="max-w-7xl mx-auto px-4 pb-8 text-center text-xs md:text-sm text-slate-500 border-t border-slate-800/50 pt-8">
+        <p>
+            📚 Total: 19 keyword • 
+            ✅ 19 sukses • 
+            ❌ 0 gagal
+        </p>
+        <p class="mt-1 opacity-50">Generated by Wikipedia Scraper • Tailwind CSS • Dark Mode</p>
+        <p class="mt-2 no-print text-xs text-slate-600">
+            💡 Untuk save as PDF: klik tombol Print di atas atau tekan Ctrl+P
+        </p>
+    </footer>
+
+    <script>
+        if ('IntersectionObserver' in window) {
+            const images = document.querySelectorAll('img[loading="lazy"]');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.loading = 'eager';
+                        observer.unobserve(img);
+                    }
+                });
+            });
+            images.forEach(img => observer.observe(img));
+        }
+
+        document.querySelectorAll('.fade-in').forEach((el, i) => {
+            el.style.animationDelay = (i * 0.1) + 's';
+        });
+
+        console.log('📖 Wikipedia Scraper - Multiple Results');
+        console.log('📊 Total: 19 keywords');
+        console.log('✅ Success: 19');
+        console.log('❌ Failed: 0');
+    </script>
+</body>
+</html>
